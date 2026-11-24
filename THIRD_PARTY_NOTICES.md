@@ -26,6 +26,18 @@ https://huggingface.co/basyauma-tech/Haas-ja-v1.0-mlx-8bit.
   installed as a Python dependency.
 - Runs fully on-device with MLX. It is not a MimiVox work.
 
+## Parakeet TDT 0.6B v2 speech recognition model
+
+The browser app's English speech recognition (the `en-ja` pair) runs Parakeet TDT
+0.6B v2, downloaded unmodified on demand from
+https://huggingface.co/ysdede/parakeet-tdt-0.6b-v2-onnx
+(pinned revision `db4a768f5795e0f508187a34241fbeeef6ebb0d3`).
+
+- Model weights: [parakeet-tdt-0.6b-v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2),
+  NVIDIA, licensed [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/).
+- ONNX export: ysdede. MimiVox has not modified it.
+- Runs fully on-device in the browser. It is not a MimiVox work.
+
 ## Silero VAD model
 
 Speech detection runs the Silero VAD model (`src/mimivox/silero/silero_vad.onnx`),

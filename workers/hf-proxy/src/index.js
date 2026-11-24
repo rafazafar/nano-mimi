@@ -34,6 +34,7 @@ const DEFAULT_REPOS = [
   "basyauma-tech/Haas-ja-v1.0-onnx",
   "Sanami/haas-ja-onnx",
   "kizuna-intelligence/Haas-ja-v1.0-OneCompression-ONNX",
+  "ysdede/parakeet-tdt-0.6b-v2-onnx",
 ];
 
 // Files pinned to a commit sha are immutable, so they can be copied into the

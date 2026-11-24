@@ -23,6 +23,25 @@ pair without it fails fast with a message instead of letting mlx_lm download it 
 The model stays resident while a session uses it (`notes_llm.pin`), so the notes idle timer
 cannot evict it mid-meeting.
 
+## Web app (`web/`)
+
+The browser app supports `ja-en` and `en-ja`, with CAT-Translate for both. One table,
+`web/src/core/strategy.ts`, holds the per-pair differences.
+
+| Stage | ja-en | en-ja |
+|---|---|---|
+| Speech recognition | Haas-ja v1.0 | Parakeet TDT 0.6B v2 |
+| CAT prompt | the length-tiered Japanese prompts | CAT's official `Translate the following English text into Japanese.` |
+| Token cap | by Japanese length | `clamp(ceil(chars * 0.5) + 24, 32, 192)` |
+| Japanese-token ban | yes | no |
+| Output cleaning | prompt leaks, first sentence, Japanese stripped | prompt leaks and a leading label; Japanese kept |
+| Retry without context | empty, echo, too short, labelled | empty or echo |
+| Number check and grouped-digits retry | yes | off |
+| Glossary | Japanese substitution, ASR fixes and terms | English term to Japanese term, whole word, ignoring case; Japanese-source entries skipped |
+| Punctuation | appends `。` | appends `.` |
+| Split-sentence revision, partial-EN preview | yes | off |
+| English passthrough | yes | n/a |
+
 Wire format: events and log rows keep their `ja` / `en` keys. For a pair `ja` holds the source
 text and `en` the translation, and `session_start` carries `source_lang` / `target_lang`.
 
