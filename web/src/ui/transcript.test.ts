@@ -106,8 +106,8 @@ describe("timingRows", () => {
 describe("timingRows for English speech", () => {
   it("names the translation language per direction", () => {
     expect(timingRows(timing, "mt", en, "en-ja")[0]).toEqual(["Japanese from", "mt"]);
-    expect(timingRows(timing, "mt", ja, "en-ja")[0]).toEqual(["日本語の出どころ", "mt"]);
-    expect(timingRows(timing, "mt", ja, "ja-en")[0]?.[0]).toBe("英語の出どころ");
+    expect(timingRows(timing, "mt", ja, "en-ja")[0]).toEqual(["日本語の生成元", "mt"]);
+    expect(timingRows(timing, "mt", ja, "ja-en")[0]?.[0]).toBe("英語の生成元");
   });
 });
 

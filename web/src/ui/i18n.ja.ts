@@ -185,7 +185,7 @@ export const ja: Messages = {
     revised: (n) => (n > 1 ? `修正 ×${n}` : "修正済み"),
     revisedTitle: "次の断片が加わったため、この行は書き換えられました。",
     timingDetail: "所要時間の内訳",
-    from: (language) => `${language}の出どころ`,
+    from: (language) => `${language}の生成元`,
     vadWait: "音声検出の待ち時間",
     queueWait: "キューの待ち時間",
     asr: "音声認識",
