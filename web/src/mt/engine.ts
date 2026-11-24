@@ -11,6 +11,7 @@ import {
 import { OpfsBlobStore } from "../models/blob-store";
 import { ModelStore } from "../models/model-store";
 import type { Manifest, ModelSpec } from "../models/types";
+import { asyncifyWasmUrl } from "../runtimeWasm";
 import type { Generate } from "./ladder";
 import type { AdapterInfo, LoadInfo } from "./protocol";
 import { CatTokenizer, type TjsTokenizer } from "./tokenizer";
@@ -25,7 +26,7 @@ const STORE_HOST = "https://model-store.invalid/";
 const ORT_DIST = "../../node_modules/@huggingface/transformers/node_modules/onnxruntime-web/dist/";
 const WASM_PATHS = {
   mjs: new URL(`${ORT_DIST}ort-wasm-simd-threaded.asyncify.mjs`, import.meta.url).href,
-  wasm: new URL(`${ORT_DIST}ort-wasm-simd-threaded.asyncify.wasm`, import.meta.url).href,
+  wasm: asyncifyWasmUrl(__TJS_ORT_VERSION__, new URL(`${ORT_DIST}ort-wasm-simd-threaded.asyncify.wasm`, import.meta.url).href),
 };
 
 function storeFetch(store: ModelStore, model: ModelSpec): typeof fetch {

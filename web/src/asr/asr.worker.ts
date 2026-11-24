@@ -5,6 +5,7 @@ import plainWasm from "onnxruntime-web/ort-wasm-simd-threaded.wasm?url";
 import * as ortCpu from "onnxruntime-web/wasm";
 import * as ortGpu from "onnxruntime-web/webgpu";
 import { ModelStore, OpfsBlobStore } from "../models";
+import { asyncifyWasmUrl } from "../runtimeWasm";
 import { parseHaasConfig } from "./config";
 import { HaasRecognizer, type HaasTables } from "./haas";
 import { ASR_ENCODER, HAAS_DECODER, HAAS_TABLES, type AsrBackend } from "./models";
@@ -45,7 +46,7 @@ async function init(req: AsrInit): Promise<HaasRecognizer> {
   // Only the WebGPU EP needs the asyncify build. Everything on the wasm EP, the decoder's ~250 small
   // runs per clip above all, uses the plain build, which skips asyncify's instrumentation.
   ortGpu.env.wasm.numThreads = req.threads;
-  ortGpu.env.wasm.wasmPaths = { wasm: asyncifyWasm };
+  ortGpu.env.wasm.wasmPaths = { wasm: asyncifyWasmUrl(__ORT_VERSION__, asyncifyWasm) };
   ortCpu.env.wasm.numThreads = req.threads;
   ortCpu.env.wasm.wasmPaths = { wasm: plainWasm };
   const encOrt = req.backend === "webgpu" ? ortGpu : ortCpu;
