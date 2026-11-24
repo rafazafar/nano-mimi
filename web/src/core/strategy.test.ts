@@ -85,10 +85,9 @@ describe("pair-dependent source handling", () => {
     expect(normalizePunctuation(src("はい"))).toBe("はい。");
   });
 
-  it("never treats English source as a passthrough, and keeps it as context", () => {
+  it("never treats English source as a passthrough, and never sends it as context", () => {
     expect(en.source.passthrough(src("Thank you very much."))).toBe(false);
-    expect(en.source.contextEligible(src("Thank you very much."))).toBe(true);
-    expect(en.source.contextEligible(src("Yes."))).toBe(false);
+    expect(en.source.contextEligible(src("Thank you very much."))).toBe(false);
     expect(ja.source.passthrough(src("Thank you very much."))).toBe(true);
   });
 

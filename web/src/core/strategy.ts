@@ -76,7 +76,9 @@ const enJa: PairStrategy = {
     normalizePunctuation: normalizeEnglishPunctuation,
     applyGlossary: applyEnglishGlossary,
     passthrough: () => false,
-    contextEligible: longEnough,
+    // With prior turns CAT 1.4B often answers en-ja in English or re-translates the previous line (seen in the
+    // browser on FLEURS); without them every line came back as Japanese, so English source runs context-free.
+    contextEligible: () => false,
   },
   preview: false,
   splitRepair: false,

@@ -255,14 +255,14 @@ describe("the en-ja pair", () => {
     expect(kinds(r.events).filter((k) => k === "final" || k === "revising" || k === "revision")).toEqual(["final", "final"]);
   });
 
-  it("passes prior English lines as context", async () => {
+  it("translates each English line without context turns", async () => {
     const r = enRig();
     r.asr.auto = (call) => (call.samples[0] === 1 ? "The quote arrived today." : "We need to reply soon.");
     r.mt.auto = (call) => `JA<${call.ja}>`;
     await r.pipeline.submit(utterance(1));
     await r.pipeline.submit(utterance(2));
     await r.pipeline.finish();
-    expect(r.mt.finals()[1]?.context).toEqual([{ ja: "The quote arrived today.", en: "JA<The quote arrived today.>" }]);
+    expect(r.mt.finals()[1]?.context).toEqual([]);
   });
 });
 
