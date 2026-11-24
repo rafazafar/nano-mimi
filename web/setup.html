@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MimiVox Web - Model setup</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; padding: 0 1rem; }
+      progress { width: 12rem; }
+      li[data-state="failed"] .state { color: #b00020; }
+      li[data-state="ready"] .state { color: #0a7d33; }
+      #issues li, #error { color: #b00020; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Model setup</h1>
+      <p id="overall" data-state="pending">Checking downloaded models...</p>
+      <ul id="issues"></ul>
+      <p id="error" role="alert" hidden></p>
+      <p><button id="download" type="button" disabled>Download models</button></p>
+      <div id="models"></div>
+      <p><small>Time to ready: <span id="ready-ms">-</span> ms. Storage: <span id="grant">-</span>.</small></p>
+    </main>
+    <script type="module" src="/src/models/setup.ts"></script>
+  </body>
+</html>
