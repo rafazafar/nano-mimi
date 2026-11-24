@@ -21,7 +21,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "eval/**/*.test.ts"],
     testTimeout: 60_000,
   },
 });

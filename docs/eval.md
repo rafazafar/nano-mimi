@@ -55,6 +55,45 @@ as `unaligned_rows` in `report.json`.
 `--raw-levels` (feed clips at FLEURS's own levels, about -60 dBFS for the
 female ja_jp clips, to test quiet speakers).
 
+## Browser eval
+
+`make web-eval` runs the web app on the same clips and meetings and prints its
+report next to the macOS baseline (`data/eval/baseline-macos/report.json`, a copy
+of a `make eval` report directory). It needs headed Chrome with WebGPU and the
+models in `web/.models`, and takes about 35 minutes because every input plays at 1x.
+
+```bash
+$PY scripts/eval/web_eval.py prepare --clips 100            # data/eval/web-inputs/ (self-contained)
+(cd web && node eval/run.ts --inputs ../data/eval/web-inputs --out ../data/eval/web-reports/<run>/rows.json)
+$PY scripts/eval/web_eval.py score --rows data/eval/web-reports/<run>/rows.json
+$PY scripts/eval/compare_reports.py data/eval/baseline-macos/report.json data/eval/web-reports/<run>/report.json
+```
+
+`web/eval/run.ts` mounts the real app and logs its pipeline events. Meetings go through
+Chrome's fake microphone (`--use-file-for-fake-audio-capture`), one Chrome launch each.
+Clips go through the app's WAV-file source in one warm page, one fresh session per clip
+(`--clips-via mic` uses the fake microphone for them too). `web_eval.py score` hands the
+logged rows to the scoring functions `run_eval.py` uses, so CER, chrF, alignment and
+latency percentiles are computed by the same code. Neither Python step imports MLX, so
+`prepare` and `score` run on a machine that only runs the browser.
+
+`compare_reports.py` judges each of `clips` and `meetings` against these bars and exits 0
+(all hold), 1 (a bar failed) or 2 (refused: a metric is missing or not a number in either
+report, so nothing is judged):
+
+| metric | bar |
+|---|---|
+| CER | at most 1.0 percentage point above the baseline |
+| chrF | at most 1.5 below the baseline |
+| perceived p50 / p95 | at most 1.5x / 2x the baseline |
+| missed lines (meetings) | no more than the baseline |
+
+The web app has only the live VAD tuning (400 ms silence close), while `make eval` uses
+the replay tuning (700 ms). `run_eval.py --live-vad` produces the like-for-like baseline;
+point `make web-eval BASELINE=<dir>` at a copy of its report directory to judge against it.
+The replay baseline waits longer before closing a row, so its perceived latency is higher
+and a web run looks better against it than it does against the like-for-like baseline.
+
 ## Caveats
 
 - FLEURS has no speaker id. "Speaker A/B" is the gender role, so two male clips
