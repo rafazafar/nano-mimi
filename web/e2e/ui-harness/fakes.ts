@@ -230,7 +230,7 @@ export class SessionControl {
     const ended = new Promise<void>((resolve) => {
       this.ended = resolve;
     });
-    const label = options.source.kind === "file" ? options.source.name : options.source.kind === "tab" ? "Browser tab" : "Microphone";
+    const label = options.source.kind === "file" ? options.source.name : options.source.kind === "tab" ? "Browser / system audio" : "Microphone";
     return Promise.resolve({
       sourceLabel: label,
       audioSeconds: () => this.seconds,

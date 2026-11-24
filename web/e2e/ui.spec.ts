@@ -167,15 +167,23 @@ test.describe("source picker and start", () => {
 
   test("tab audio explains how to share sound, and a share without audio is recoverable", async ({ page }) => {
     await reachReady(page);
-    await page.locator("label.seg", { hasText: "Browser tab" }).click();
-    await expect(role(page, "source-hint")).toContainText("Share tab audio");
+    await page.locator("label.seg", { hasText: "Browser / system audio" }).click();
+    await expect(role(page, "source-hint")).toContainText("entire screen");
+
+    await role(page, "start").click();
+    await expect(role(page, "share-guide")).toContainText("Share tab audio");
+    await role(page, "share-guide").getByRole("button", { name: "Cancel" }).click();
+    await expect(role(page, "share-guide")).toBeHidden();
+    await expectAppState(page, "ready");
 
     await page.evaluate(() => window.__harness!.session.failNextStart("Error", "The shared tab has no audio track"));
     await role(page, "start").click();
+    await role(page, "share-continue").click();
     await expect(role(page, "source-error")).toContainText("Share tab audio");
     await expectAppState(page, "ready");
 
     await role(page, "start").click();
+    await role(page, "share-continue").click();
     await expectAppState(page, "running");
     expect(await page.evaluate(() => window.__harness!.session.startedWith)).toEqual({ kind: "tab" });
   });

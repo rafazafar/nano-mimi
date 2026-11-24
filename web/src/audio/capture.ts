@@ -22,9 +22,9 @@ export function microphoneStream(): Promise<MediaStream> {
   });
 }
 
-/** Audio of a tab the user picks. The video track is dropped. */
+/** Audio of a tab, or of the whole system when the user shares a screen. The video track is dropped. */
 export async function tabAudioStream(): Promise<MediaStream> {
-  const stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: true });
+  const stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: true, systemAudio: "include" } as DisplayMediaStreamOptions);
   stream.getVideoTracks().forEach((track) => {
     track.stop();
     stream.removeTrack(track);

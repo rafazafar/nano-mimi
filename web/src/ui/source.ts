@@ -28,7 +28,7 @@ export function toSourceSpec(choice: SourceChoice): SourceSpec | null {
   return { kind: choice.kind };
 }
 
-export const SOURCE_LABEL: Readonly<Record<SourceKind, string>> = { mic: "Microphone", tab: "Browser tab", file: "WAV file" };
+export const SOURCE_LABEL: Readonly<Record<SourceKind, string>> = { mic: "Microphone", tab: "Browser / system audio", file: "WAV file" };
 
 export function parseWavPick(name: string, bytes: Uint8Array): PickResult {
   if (bytes.length === 0) return { ok: false, message: `${name} is empty.` };

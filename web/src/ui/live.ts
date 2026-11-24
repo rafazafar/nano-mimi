@@ -36,13 +36,13 @@ const SOURCES: readonly { readonly kind: SourceKind; readonly icon: IconName }[]
 
 const SOURCE_HINT: Readonly<Record<SourceKind, string>> = {
   mic: "Uses your default microphone. The browser asks for permission the first time.",
-  tab: "Pick a browser tab in the share dialog and tick “Share tab audio”, or no sound is captured.",
+  tab: "A tab, or the entire screen for all sound.",
   file: "Replays a recording at normal speed through the same path as live audio. 16-bit PCM or 32-bit float WAV.",
 };
 
 const EMPTY_COPY: Readonly<Record<SourceKind, string>> = {
   mic: "Press Start and speak Japanese. English appears under each line a moment after you finish it.",
-  tab: "Press Start, choose the tab with the call or video, and share its audio. English appears under each line as it is spoken.",
+  tab: "Press Start, choose the tab with the call or video (or your entire screen), and share its audio. English appears under each line as it is spoken.",
   file: "Choose or drop a WAV recording, then press Start. It plays at normal speed and the captions follow it.",
 };
 
@@ -69,6 +69,8 @@ export class LiveView {
   private readonly drop: HTMLElement;
   private readonly fileLabel: HTMLElement;
   private pendingAction: "start" | "stop" | "none" = "none";
+  private kind: SourceKind = "mic";
+  private readonly shareGuide: HTMLDialogElement;
 
   constructor(private readonly callbacks: LiveCallbacks, reducedMotion: () => boolean) {
     this.transcript = new TranscriptView({ prefersReducedMotion: reducedMotion });
@@ -106,9 +108,12 @@ export class LiveView {
     this.sourceError = h("p", { class: "notice notice-error", role: "alert", "data-role": "source-error", hidden: true });
     this.drop = h("div", { class: "drop", "data-role": "drop", hidden: true }, icon("upload"), h("p", {}, "Drop a WAV file to replay it"));
 
+    this.shareGuide = shareGuideDialog(() => this.callbacks.onStart());
+
     this.el = h(
       "section",
       { class: "live", "data-role": "live" },
+      this.shareGuide,
       toolbar,
       this.pipNote,
       this.transcript.el,
@@ -123,7 +128,9 @@ export class LiveView {
   }
 
   private onAction(): void {
-    if (this.pendingAction === "start") this.callbacks.onStart();
+    // The share dialog Chrome opens is easy to get wrong, so tab capture opens with a short guide.
+    if (this.pendingAction === "start" && this.kind === "tab") this.shareGuide.showModal();
+    else if (this.pendingAction === "start") this.callbacks.onStart();
     else if (this.pendingAction === "stop") this.callbacks.onStop();
   }
 
@@ -136,6 +143,7 @@ export class LiveView {
   update(model: LiveModel): void {
     const { state, captions } = model;
     const kind = state.source.kind;
+    this.kind = kind;
     const idle = state.kind === "ready";
     this.transcript.render(captions);
     setText(this.sourceLine, this.describeSource(state, model.elapsedS));
@@ -217,4 +225,27 @@ export class LiveView {
     if (source.kind !== "file") return SOURCE_HINT[source.kind];
     return source.pick === null ? SOURCE_HINT.file : `${source.pick.name}, ${formatBytes(source.pick.bytes.length)}, ${Math.round(source.pick.sampleRate / 100) / 10} kHz. Plays at normal speed.`;
   }
+}
+
+function shareGuideDialog(onContinue: () => void): HTMLDialogElement {
+  const dialog: HTMLDialogElement = h(
+    "dialog",
+    { class: "share-guide", "data-role": "share-guide", "aria-labelledby": "share-guide-title" },
+    h("h2", { id: "share-guide-title" }, "Share audio"),
+    h("p", {}, "Chrome will ask what to share next."),
+    h(
+      "ol",
+      {},
+      h("li", {}, "Pick the tab with the call or video. For sound from other apps, pick ", h("b", {}, "Entire screen"), "."),
+      h("li", {}, "Turn on ", h("b", {}, "Share tab audio"), " (or ", h("b", {}, "Share system audio"), ")."),
+      h("li", {}, "Click ", h("b", {}, "Share"), "."),
+    ),
+    h(
+      "div",
+      { class: "share-guide-actions" },
+      h("button", { class: "btn", type: "button", onclick: () => dialog.close() }, "Cancel"),
+      h("button", { class: "btn btn-primary", type: "button", "data-role": "share-continue", onclick: () => { dialog.close(); onContinue(); } }, "Continue"),
+    ),
+  );
+  return dialog;
 }
