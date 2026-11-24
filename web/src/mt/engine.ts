@@ -31,11 +31,14 @@ const WASM_PATHS = {
 };
 
 function storeFetch(store: ModelStore, model: ModelSpec): typeof fetch {
-  const prefix = `${STORE_HOST}${model.repo}/resolve/${model.revision}/`;
+  // transformers.js does not pass the revision through for every file (the tokenizer asks for `main`).
+  // The store already holds the pinned revision, so any revision segment maps to it.
+  const prefix = `${STORE_HOST}${model.repo}/resolve/`;
   return async (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (!url.startsWith(prefix)) return fetch(input, init);
-    const path = decodeURIComponent(url.slice(prefix.length));
+    const rest = url.slice(prefix.length);
+    const path = decodeURIComponent(rest.slice(rest.indexOf("/") + 1));
     // Optional files transformers.js probes for (processor configs and the like).
     if (!model.files.some((f) => f.path === path)) return new Response(null, { status: 404 });
     const blob = await store.getBlob(model.id, path);
