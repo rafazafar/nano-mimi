@@ -1,0 +1,343 @@
+{
+  "family": "clean",
+  "functions": {
+    "clean_cat": [
+      {
+        "input": "Hello world. Translate the following",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Hello world"}
+      },
+      {
+        "input": "Hello world",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Hello world"}
+      },
+      {
+        "input": "  Hello  \n  world  ",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Hello world"}
+      },
+      {
+        "input": "Line one\nLine two\n\nLine three",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Line one Line two Line three"}
+      },
+      {
+        "input": "Okay. English:",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Okay"}
+      },
+      {
+        "input": "It is fine English:",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "It is fine"}
+      },
+      {"input": "Okay", "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Okay"}},
+      {
+        "input": "Please translate this. It is done.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": ""}
+      },
+      {
+        "input": "Translate the following Japanese text",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": ""}
+      },
+      {
+        "input": "Yes. Translate to English",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Yes"}
+      },
+      {
+        "input": "Good morning.",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Good morning"}
+      },
+      {
+        "input": "Good morning...",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Good morning"}
+      },
+      {
+        "input": "reported to the部長？",
+        "output": {"japanese_stripped": true, "prompt_leak": false, "text": "reported to the"}
+      },
+      {"input": "よろしくお願いいたします。", "output": {"japanese_stripped": true, "prompt_leak": false, "text": ""}},
+      {
+        "input": "Thank you、 very much。",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Thank you、 very much。"}
+      },
+      {
+        "input": "I will go・home…",
+        "output": {"japanese_stripped": true, "prompt_leak": false, "text": "I will go home"}
+      },
+      {
+        "input": "Hello. Japanese: こんにちは",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Hello"}
+      },
+      {
+        "input": "PLEASE TRANSLATE: hello",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": ""}
+      },
+      {
+        "input": "Sure. I can help you with that",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Sure"}
+      },
+      {
+        "input": "Yes! That was incorrect. Moving on",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Yes!"}
+      },
+      {"input": "", "output": {"japanese_stripped": false, "prompt_leak": false, "text": ""}},
+      {"input": "   ", "output": {"japanese_stripped": false, "prompt_leak": false, "text": ""}},
+      {"input": "Hi!", "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Hi!"}},
+      {
+        "input": "Hi! Then some more text that is long enough to pass",
+        "output": {
+          "japanese_stripped": false,
+          "prompt_leak": false,
+          "text": "Hi! Then some more text that is long enough to pass"
+        }
+      },
+      {
+        "input": "Yes. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "output": {
+          "japanese_stripped": false,
+          "prompt_leak": false,
+          "text": "Yes. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      },
+      {
+        "input": "A. Translate the following",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "A"}
+      },
+      {
+        "input": "What? Your message has been received",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "What?"}
+      },
+      {
+        "input": "Right.\nEnglish:",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Right"}
+      },
+      {
+        "input": "Meeting at ccenture today",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Meeting at"}
+      },
+      {
+        "input": "Ok. Here is the instruction: do it",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Ok"}
+      },
+      {
+        "input": "The police arrived at the scene. Avoid using overly formal and literal wording.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
+      {
+        "input": "The police arrived at the scene. Avoid using overly formal and literal language.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
+      {
+        "input": "The police arrived at the scene. Avoid overly literal wording.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
+      {
+        "input": "The police arrived at the scene. Avoid overly formal wording.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
+      {"input": "ｱｲｳ kana", "output": {"japanese_stripped": true, "prompt_leak": false, "text": "kana"}},
+      {
+        "input": "mixed English and 日本語 together",
+        "output": {"japanese_stripped": true, "prompt_leak": false, "text": "mixed English and together"}
+      },
+      {
+        "input": "Go. in Japanese it means go",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Go"}
+      },
+      {"input": "End.   ", "output": {"japanese_stripped": false, "prompt_leak": false, "text": "End"}},
+      {
+        "input": "Trailing English:   ",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Trailing"}
+      },
+      {
+        "input": "Hello\rworldagain",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Hello world again"}
+      },
+      {
+        "input": "İ Please translate this",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "İ P"}
+      },
+      {
+        "input": "Ok fine good",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Ok fine good"}
+      },
+      {
+        "input": "\u001cHello\u001d",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Hello"}
+      },
+      {
+        "input": "Hi 😀 there. Translate the following",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Hi 😀 there"}
+      },
+      {
+        "input": "😀 Okay. English:",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "😀 Okay"}
+      },
+      {"input": "Okay.\n", "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Okay"}},
+      {"input": "...", "output": {"japanese_stripped": false, "prompt_leak": false, "text": ""}},
+      {
+        "input": "Yes. 😀😀😀 No.",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "Yes. 😀😀😀 No"}
+      },
+      {"input": "English:", "output": {"japanese_stripped": false, "prompt_leak": true, "text": ""}},
+      {
+        "input": "xxx?Translate",
+        "output": {"japanese_stripped": false, "prompt_leak": false, "text": "xxx?"}
+      },
+      {
+        "input": "Hello there English:\n",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Hello there"}
+      },
+      {
+        "input": "ǅ Please translate x",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "ǅ"}
+      }
+    ],
+    "echoes_context": [
+      {
+        "input": {"context": [["x", "It is due by next week"]], "en": "We need to reply by next week", "ja": ""},
+        "output": false
+      },
+      {
+        "input": {
+          "context": [["まだです。明日の会議で話すつもりです。", "Not yet. I will talk at the meeting tomorrow"]],
+          "en": "Not yet. Let's discuss the implementation of MimiVox together",
+          "ja": "ミミボックスの導入の件も一緒に相談しましょう。"
+        },
+        "output": true
+      },
+      {
+        "input": {
+          "context": [["まだです。明日の会議で話すつもりです。", "Not yet. I will talk at the meeting tomorrow"]],
+          "en": "Let's discuss the implementation of MimiVox together",
+          "ja": "ミミボックスの導入の件も一緒に相談しましょう。"
+        },
+        "output": false
+      },
+      {
+        "input": {
+          "context": [["ありがとうございます。", "Thank you."]],
+          "en": "Thank you. See you tomorrow.",
+          "ja": "ありがとうございます。また明日。"
+        },
+        "output": false
+      },
+      {
+        "input": {"context": [["ですかね。", "Is that it?"]], "en": "Is that it?", "ja": "ここはちょっと、温庫の方で調節していただいてください。"},
+        "output": true
+      },
+      {
+        "input": {
+          "context": [["ですかね。", "Is that it?"]],
+          "en": "Is that it? We would like to recruit here",
+          "ja": "こちらで募集をしてみたいと思います。"
+        },
+        "output": true
+      },
+      {"input": {"context": [["はい。", "Yes."]], "en": "Yes.", "ja": "はい。"}, "output": false},
+      {"input": {"context": [["はい。", "Yes."]], "en": "Yes.", "ja": "いいえ。"}, "output": true},
+      {
+        "input": {
+          "context": [["資料は私が準備します。", "I will prepare the document"]],
+          "en": "I will prepare the document",
+          "ja": ""
+        },
+        "output": true
+      },
+      {"input": {"context": [["a", "b"]], "en": "", "ja": "c"}, "output": false},
+      {"input": {"context": [], "en": "Hello there", "ja": "こんにちは"}, "output": false},
+      {
+        "input": {"context": [["a", "Hello there friend of mine"]], "en": "Hello there friend", "ja": "x"},
+        "output": false
+      },
+      {
+        "input": {"context": [["a", "HELLO THERE FRIEND"]], "en": "hello there friend", "ja": "x"},
+        "output": true
+      },
+      {
+        "input": {"context": [["a", "hello there friend"]], "en": "Hello, there! Friend?", "ja": "x"},
+        "output": false
+      },
+      {
+        "input": {"context": [["あ。", "Two."], ["い。", "Nine."]], "en": "One. Two. Three.", "ja": "う。"},
+        "output": true
+      },
+      {
+        "input": {"context": [["あ。", "Two."], ["い。", "Nine."]], "en": "One. Two. Three.", "ja": "あ。う。"},
+        "output": false
+      },
+      {"input": {"context": [["x", "a b c d e"]], "en": "A b c d.", "ja": ""}, "output": true},
+      {"input": {"context": [["x", "a b c d e"]], "en": "A b c.", "ja": ""}, "output": false},
+      {
+        "input": {"context": [["x", "it's fine today"]], "en": "It's fine today ok", "ja": ""},
+        "output": false
+      },
+      {
+        "input": {"context": [["はい。", "Okay."], ["そう。", "Right."]], "en": "Okay.", "ja": "どうも。"},
+        "output": true
+      },
+      {
+        "input": {"context": [["はい。", "Okay."], ["そう。", "Right."]], "en": "Okay. Right.", "ja": "はい。"},
+        "output": true
+      },
+      {"input": {"context": [["はい。　 そう", "Okay."]], "en": "Okay.", "ja": "はい　。"}, "output": false},
+      {"input": {"context": [["はい。", "Okay."]], "en": "Okay.", "ja": "はい！"}, "output": false},
+      {"input": {"context": [["はい。", "Okay."]], "en": "", "ja": ""}, "output": false},
+      {"input": {"context": [["はい。", "ok!"]], "en": "OK.", "ja": "どうも"}, "output": true},
+      {
+        "input": {"context": [["x", "don’t go there now"]], "en": "Don’t go there now", "ja": ""},
+        "output": true
+      },
+      {"input": {"context": [["x", "Go!"]], "en": "Go! Go! Go!", "ja": "あ"}, "output": true}
+    ],
+    "labelled": [
+      {"input": "Translation: Okay", "output": true},
+      {"input": "  translation : Okay", "output": true},
+      {"input": "English translation: Okay", "output": true},
+      {"input": "ENGLISH TRANSLATION:Okay", "output": true},
+      {"input": "Okay. Translation: yes", "output": false},
+      {"input": "The translation: yes", "output": false},
+      {"input": "Translation Okay", "output": false},
+      {"input": "\n\ttranslation:", "output": true},
+      {"input": "english  translation:", "output": false},
+      {"input": "\u001ctranslation:", "output": true},
+      {"input": "﻿translation:", "output": false},
+      {"input": "", "output": false},
+      {"input": "ſtranslation:", "output": false},
+      {"input": "TRANSLATIONK:", "output": false}
+    ],
+    "prompt_leak_markers": [
+      {
+        "input": null,
+        "output": ["Translate the following", "Please translate", "The meaning, tone", "Preserve the meaning", "avoid stiff literal", "avoid overly rigid", "Avoid using overly rigid", "Avoid using overly formal", "Avoid overly formal", "Avoid overly literal", "speaker intent", "can be translated", "has been translated", "Please keep the meaning", "Please preserve", "natural conversational English", "Your message", "message has been", "Translate to English", "following Japanese", "in Japanese", "In English,", "Let's keep playing", "speak English naturally", "I'll help you speak", "I'll help you", "I can help you", "that was incorrect", "This Japanese phrase", "correct translation:", "ccenture", "Here is the instruction", "English:", "this phrase in English", "Japanese:", "Please use the"]
+      }
+    ],
+    "too_short": [
+      {
+        "input": {
+          "en": "Is that clear?",
+          "ja": "募集とかもそちらの方でお願いしたいなと思ってますので、私的には本当に開催できれば本当にありがたいので、どういう形でも人数でも構いませんので、お願いしたいなと思っております。"
+        },
+        "output": true
+      },
+      {
+        "input": {
+          "en": "We would like you to handle recruitment too. We would be grateful if it can be held, with any format or number of people.",
+          "ja": "募集とかもそちらの方でお願いしたいなと思ってますので、私的には本当に開催できれば本当にありがたいので、どういう形でも人数でも構いませんので、お願いしたいなと思っております。"
+        },
+        "output": false
+      },
+      {"input": {"en": "Yes.", "ja": "はい。"}, "output": false},
+      {"input": {"en": "", "ja": ""}, "output": false},
+      {"input": {"en": "", "ja": "はい"}, "output": true},
+      {"input": {"en": "Yes", "ja": ""}, "output": false},
+      {"input": {"en": "One", "ja": "あいうえおか"}, "output": false},
+      {"input": {"en": "One", "ja": "あいうえおかき"}, "output": true},
+      {"input": {"en": "One two", "ja": "ああああああああああああ"}, "output": false},
+      {"input": {"en": "One two", "ja": "あああああああああああああ"}, "output": true},
+      {"input": {"en": "It's fine", "ja": "あ、い。う！え？お!か?き.く,「け」…こー"}, "output": false},
+      {"input": {"en": "日本語 only", "ja": "はい。"}, "output": false},
+      {"input": {"en": "a1 b2 c3", "ja": "ああああああああああああああああああ"}, "output": false},
+      {"input": {"en": "a1 b2 c3", "ja": "あああああああああああああああああああ"}, "output": true},
+      {"input": {"en": "😀", "ja": "ああああああ"}, "output": true},
+      {"input": {"en": "aaa", "ja": "あ😀あ😀あ😀"}, "output": false},
+      {"input": {"en": "café ok", "ja": "あああああああああああああ"}, "output": true}
+    ]
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "cases": [
+    {
+      "input": {"script": [[200, 0.0, 0.0]]},
+      "name": "pure_silence",
+      "output": {"utterances": [], "vad_wait_s": []}
+    },
+    {
+      "input": {"script": [[62, 1.0, 0.5], [62, 0.0, 0.0]]},
+      "name": "single_utterance",
+      "output": {
+        "utterances": [{"emitted": true, "emitted_samples": 32064, "end": 33024, "start": 0}],
+        "vad_wait_s": [0.384]
+      }
+    },
+    {
+      "input": {"script": [[62, 1.0, 0.5], [31, 0.0, 0.0], [62, 1.0, 0.5], [31, 0.0, 0.0]]},
+      "name": "two_utterances",
+      "output": {
+        "utterances": [
+          {"emitted": true, "emitted_samples": 32064, "end": 33024, "start": 0},
+          {"emitted": true, "emitted_samples": 33344, "end": 80640, "start": 46336}
+        ],
+        "vad_wait_s": [0.384, 0.384]
+      }
+    },
+    {
+      "input": {"script": [[62, 1.0, 0.5], [9, 0.0, 0.0], [62, 1.0, 0.5], [31, 0.0, 0.0]]},
+      "name": "short_pause_does_not_split",
+      "output": {
+        "utterances": [{"emitted": true, "emitted_samples": 68416, "end": 69376, "start": 0}],
+        "vad_wait_s": [0.384]
+      }
+    },
+    {
+      "input": {"script": [[15, 0.0, 0.0], [62, 1.0, 0.5], [37, 0.0, 0.0]]},
+      "name": "onset_pad",
+      "output": {
+        "utterances": [{"emitted": true, "emitted_samples": 33344, "end": 40704, "start": 6400}],
+        "vad_wait_s": [0.384]
+      }
+    },
+    {
+      "input": {"script": [[1, 1.0, 0.5], [31, 0.0, 0.0]]},
+      "name": "too_short_dropped",
+      "output": {"utterances": [], "vad_wait_s": []}
+    },
+    {
+      "input": {"script": [[4, 0.0, 0.0], [62, 1.0, 0.5]]},
+      "name": "flush_at_end_of_stream",
+      "output": {
+        "utterances": [{"emitted": true, "emitted_samples": 33024, "end": 33792, "start": 768}],
+        "vad_wait_s": []
+      }
+    },
+    {
+      "input": {"script": [[31, 0.0, 0.0], [62, 1.0, 0.0014], [31, 0.0, 0.0]]},
+      "name": "quiet_speaker_raised",
+      "output": {
+        "utterances": [{"emitted": true, "emitted_samples": 33344, "end": 48896, "start": 14592}],
+        "vad_wait_s": [0.384]
+      }
+    },
+    {
+      "input": {"script": [[31, 0.0, 0.0], [62, 1.0, 0.00014], [31, 0.0, 0.0]]},
+      "name": "below_absolute_floor",
+      "output": {
+        "utterances": [{"emitted": false, "emitted_samples": 0, "end": 48896, "start": 14592}],
+        "vad_wait_s": []
+      }
+    },
+    {
+      "input": {"script": [[31, 0.0, 0.0], [62, 1.0, 0.8], [31, 0.0, 0.0]]},
+      "name": "loud_speaker_not_attenuated",
+      "output": {
+        "utterances": [{"emitted": true, "emitted_samples": 33344, "end": 48896, "start": 14592}],
+        "vad_wait_s": [0.384]
+      }
+    },
+    {
+      "input": {"script": [[31, 0.0, 0.0], [600, 1.0, 0.5], [62, 0.0, 0.0]]},
+      "name": "max_emit_split",
+      "output": {
+        "utterances": [
+          {"emitted": true, "emitted_samples": 240000, "end": 254592, "start": 14592},
+          {"emitted": true, "emitted_samples": 68416, "end": 324352, "start": 254976}
+        ],
+        "vad_wait_s": [0.0, 0.384]
+      }
+    },
+    {
+      "input": {"script": [[31, 0.0, 0.0], [20, 0.35, 0.5], [20, 0.3499, 0.5], [62, 0.0, 0.0]]},
+      "name": "threshold_edge",
+      "output": {
+        "utterances": [{"emitted": true, "emitted_samples": 12800, "end": 27392, "start": 14592}],
+        "vad_wait_s": [0.384]
+      }
+    },
+    {
+      "input": {"script": [[31, 0.0, 0.0], [7, 1.0, 0.5], [31, 0.0, 0.0]]},
+      "name": "speech_under_min_open",
+      "output": {
+        "utterances": [{"emitted": false, "emitted_samples": 0, "end": 20736, "start": 14592}],
+        "vad_wait_s": []
+      }
+    }
+  ],
+  "tuning": {
+    "max_emit_s": 15.0,
+    "min_silence_ms": 400,
+    "min_speech_ms": 250,
+    "min_speech_s": 0.6,
+    "speech_pad_ms": 80,
+    "threshold": 0.35
+  }
+}

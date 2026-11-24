@@ -29,7 +29,17 @@ const DEFAULT_REPOS = [
   "hotchpotch/CAT-Translate-1.4b-mlx-q4",
   "mlx-community/Qwen3-4B-Instruct-2507-4bit",
   "Wespeaker/wespeaker-voxceleb-resnet34-LM",
+  // The browser app's models (ONNX).
+  "rafazafar/CAT-Translate-1.4b-onnx-q4f16",
+  "basyauma-tech/Haas-ja-v1.0-onnx",
+  "Sanami/haas-ja-onnx",
+  "kizuna-intelligence/Haas-ja-v1.0-OneCompression-ONNX",
 ];
+
+// Files pinned to a commit sha are immutable, so they can be copied into the
+// MODELS R2 bucket under <repo>/<sha>/<path> (see scripts/seed_model_mirror.mjs)
+// and served from there when the Hub is down. Other revisions always go to the Hub.
+const COMMIT_SHA = /^[0-9a-f]{40}$/;
 
 // Response headers that would steer the client away from this worker.
 const DROPPED_HEADERS = [
@@ -50,13 +60,13 @@ const FORWARDED_REQUEST_HEADERS = ["range", "if-none-match", "if-match", "if-ran
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
   "access-control-expose-headers":
-    "Content-Length, Content-Range, Accept-Ranges, ETag, X-Repo-Commit, X-Linked-ETag, X-Linked-Size",
+    "Content-Length, Content-Range, Accept-Ranges, ETag, X-Repo-Commit, X-Linked-ETag, X-Linked-Size, X-Mimivox-Source",
   "cross-origin-resource-policy": "cross-origin",
 };
 
 const REPO = "[A-Za-z0-9][\\w.-]*/[\\w.-]+";
 const API_ROUTE = new RegExp(`^/api/models/(${REPO})(?:/revision/[^/]+)?/?$`);
-const RESOLVE_ROUTE = new RegExp(`^/(${REPO})/resolve/[^/]+/.+$`);
+const RESOLVE_ROUTE = new RegExp(`^/(${REPO})/resolve/([^/]+)/(.+)$`);
 // The Hub answers resolve requests for small files with a relative redirect here.
 const RESOLVE_CACHE_ROUTE = new RegExp(`^/api/resolve-cache/models/(${REPO})/[^/]+/.+$`);
 const CDN_ROUTE = /^\/_cdn\/([\w-]+)\/([a-z0-9.-]+)(\/.*)$/;
@@ -97,12 +107,80 @@ export default {
       return proxy(request, target, url.origin, key);
     }
 
-    const repo = [API_ROUTE, RESOLVE_ROUTE, RESOLVE_CACHE_ROUTE].map((route) => path.match(route)?.[1]).find(Boolean);
-    if (!repo) return text(404, "Not found.");
+    const match = [API_ROUTE, RESOLVE_ROUTE, RESOLVE_CACHE_ROUTE].map((route) => path.match(route)).find(Boolean);
+    if (!match) return text(404, "Not found.");
+    const repo = match[1];
     if (!repoAllowed(repo, env)) return text(403, `Repository ${repo} is not served by this proxy.`);
+    // Only RESOLVE_ROUTE captures a revision and file path.
+    if (match[2] && match[3] && COMMIT_SHA.test(match[2]) && env.MODELS) {
+      const hit = await serveFromBucket(request, env.MODELS, `${repo}/${match[2]}/${safeDecode(match[3])}`);
+      if (hit) return hit;
+    }
     return proxy(request, `${UPSTREAM}${path}${url.search}`, url.origin, key);
   },
 };
+
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+// Parses a single "bytes=" range. Returns null when there is no usable range
+// (serve the whole object) and "invalid" when it lies outside the object.
+function parseRange(header, size) {
+  const m = /^bytes=([0-9]*)-([0-9]*)$/.exec(header ?? "");
+  if (!m || (m[1] === "" && m[2] === "")) return null;
+  let start;
+  let end;
+  if (m[1] === "") {
+    const n = Number(m[2]);
+    if (n === 0) return "invalid";
+    start = Math.max(0, size - n);
+    end = size - 1;
+  } else {
+    start = Number(m[1]);
+    end = m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1);
+  }
+  if (start >= size || start > end) return "invalid";
+  return { start, end };
+}
+
+// Serves a sha-pinned file from R2, or returns null when the bucket lacks it.
+async function serveFromBucket(request, bucket, objectKey) {
+  const head = await bucket.head(objectKey);
+  if (!head) return null;
+  const { size, httpEtag: etag } = head;
+  const headers = new Headers({
+    ...CORS_HEADERS,
+    "accept-ranges": "bytes",
+    etag,
+    "content-type": head.httpMetadata?.contentType ?? "application/octet-stream",
+    "cache-control": "public, max-age=31536000, immutable",
+    "x-mimivox-source": "r2",
+  });
+  if (request.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers });
+
+  const ifRange = request.headers.get("if-range");
+  const range = ifRange && ifRange !== etag ? null : parseRange(request.headers.get("range"), size);
+  if (range === "invalid") {
+    headers.set("content-range", `bytes */${size}`);
+    return new Response(null, { status: 416, headers });
+  }
+  const length = range ? range.end - range.start + 1 : size;
+  headers.set("content-length", String(length));
+  if (range) headers.set("content-range", `bytes ${range.start}-${range.end}/${size}`);
+  const status = range ? 206 : 200;
+  if (request.method === "HEAD") return new Response(null, { status, headers });
+
+  const options = { onlyIf: { etagMatches: head.etag } };
+  if (range) options.range = { offset: range.start, length };
+  const object = await bucket.get(objectKey, options);
+  if (!object || !("body" in object)) return null;
+  return new Response(object.body, { status, headers });
+}
 
 async function proxy(request, target, origin, key) {
   const headers = new Headers({ "user-agent": "mimivox-hf-proxy", "accept-encoding": "identity" });
@@ -141,6 +219,7 @@ async function proxy(request, target, origin, key) {
   const location = out.get("location");
   if (location) out.set("location", await rewriteLocation(location, target, origin, key));
 
+  out.set("x-mimivox-source", "hub");
   return new Response(request.method === "HEAD" ? null : body, {
     status: upstream.status,
     statusText: upstream.statusText,

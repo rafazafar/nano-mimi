@@ -2,7 +2,7 @@
 
 An anonymous, read-only proxy for people who cannot reach huggingface.co but can reach Cloudflare. Deploy it, then enter its address as the Download Source in MimiVox (Settings > Models > Download Source). See [docs/model-mirror.md](../../docs/model-mirror.md) for the other ways to set it.
 
-It stores nothing. Each request streams from Hugging Face through the worker.
+By default each request streams from Hugging Face through the worker. Files pinned to a commit sha can also be served from an R2 bucket, so downloads keep working while Hugging Face is down (see [R2 mirror](#r2-mirror)).
 
 ## Deploy
 
@@ -39,6 +39,31 @@ Only GET and HEAD (and CORS preflight) are allowed. The worker never forwards Au
 It removes the Xet headers from Hub replies. huggingface_hub then downloads with plain HTTP through the worker instead of contacting the Xet storage service directly.
 
 Browsers can use it too. Every reply allows any origin and carries `Cross-Origin-Resource-Policy: cross-origin`, so a cross-origin-isolated page (COOP/COEP) can fetch from it. For transformers.js, set `env.remoteHost` to the worker's address.
+
+## R2 mirror
+
+For `/<repo>/resolve/<rev>/<file>` where `<rev>` is a 40-hex commit sha, the worker first looks for the object `<repo>/<rev>/<file>` in the `MODELS` R2 bucket (`mimivox-models`). A hit is served from R2 with Range (206 and `Content-Range`), HEAD, `ETag` and `Accept-Ranges`. A miss falls through to the Hub. Branch and tag revisions such as `main` are mutable and never use R2. The repo allowlist is checked first.
+
+Every reply carries `x-mimivox-source: r2` or `hub`, so you can see where it came from.
+
+Create the bucket once, before the first deploy:
+
+```bash
+npx cf r2 buckets create-by-name mimivox-models
+```
+
+### Seeding it
+
+`scripts/seed_model_mirror.mjs` copies the web app's pinned files into the bucket. The model list comes from the web app, not from a second copy: it imports `src/models/manifest.ts` and `src/asr/models.ts` from the web directory.
+
+```bash
+export CLOUDFLARE_ACCOUNT_ID=<account>
+node scripts/seed_model_mirror.mjs --web web   # --dry-run lists the files only
+```
+
+For each file whose revision is a commit sha, it skips the file if R2 already holds an object of the manifest size. Otherwise it downloads the file from huggingface.co, checks the size and sha256 against the manifest, and uploads it. Files over 32 MiB go up as multipart. A mismatch aborts that file and the run exits 1. Rerun it after the manifest changes.
+
+Uploads go through a throwaway worker (`mimivox-model-seed`, the `SEED_UPLOADER=1` mode of `cloudflare.config.ts`) that holds the R2 binding. The script deploys it with a random one-off token and deletes it when done, so no R2 API credentials are created. It needs only your `cf auth login` session.
 
 ## Which repos it serves
 

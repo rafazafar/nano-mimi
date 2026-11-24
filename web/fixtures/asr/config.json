@@ -1,0 +1,32 @@
+{
+  "sample_rate": 16000,
+  "n_fft": 512,
+  "win_length": 400,
+  "hop_length": 160,
+  "n_mels": 128,
+  "pad_to": 16,
+  "d_model": 1024,
+  "n_layers": 24,
+  "n_heads": 8,
+  "ff_expansion": 4,
+  "conv_kernel_size": 9,
+  "subsampling_factor": 8,
+  "subsampling_channels": 256,
+  "pred_hidden": 640,
+  "pred_layers": 2,
+  "kda_heads": 5,
+  "kda_head_dim": 64,
+  "kda_conv_size": 4,
+  "joint_hidden": 640,
+  "vocab_size": 3072,
+  "durations": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "max_symbols": 10,
+  "source_repo": "third-intelligence/Haas-ja-v1.0",
+  "source_sha256": "c6ed38698300a371a86eadab4b56d5458f47623f7fc4a5f1e938b5adbe8458aa"
+}

@@ -1,0 +1,36 @@
+{
+  "family": "context",
+  "functions": {
+    "context_turns": [{"input": null, "output": 3}],
+    "translation_context": [
+      {
+        "input": [["テスト0番目の文章です。", "line 0"], ["テスト1番目の文章です。", "line 1"], ["テスト2番目の文章です。", "line 2"], ["テスト3番目の文章です。", "line 3"], ["テスト4番目の文章です。", "line 4"]],
+        "output": [["テスト2番目の文章です。", "line 2"], ["テスト3番目の文章です。", "line 3"], ["テスト4番目の文章です。", "line 4"]]
+      },
+      {
+        "input": [["テスト0番目の文章です。", "line 0"], ["日本語の文章です。", ""], ["Let's circle back on that.", "Let's circle back on that."], ["ですかね。", "Is that it?"], ["オンラインイベントいいと思います。", "I think online events are good"]],
+        "output": [["テスト0番目の文章です。", "line 0"], ["オンラインイベントいいと思います。", "I think online events are good"]]
+      },
+      {
+        "input": [["ですかね。", "Is that it?"], ["オンラインイベントいいと思います。", "I think online events are good"]],
+        "output": [["オンラインイベントいいと思います。", "I think online events are good"]]
+      },
+      {"input": [["あいうえお。", "short"], ["あいうえおか。", "six chars"]], "output": [["あいうえおか。", "six chars"]]},
+      {
+        "input": [["あいうえお、。", "punct only counted out"], ["あいうえおか！？", "six"]],
+        "output": [["あいうえおか！？", "six"]]
+      },
+      {"input": [["これは日本語です。", "  padded  "], ["これは日本語です。", "   "]], "output": [["これは日本語です。", "padded"]]},
+      {"input": [], "output": []},
+      {
+        "input": [["This is English text", "This is English text"], ["ミーティング開始です。", "The meeting starts"]],
+        "output": [["ミーティング開始です。", "The meeting starts"]]
+      },
+      {"input": [["😀😀😀😀😀😀", "emoji six"]], "output": [["😀😀😀😀😀😀", "emoji six"]]},
+      {"input": [["😀😀😀😀😀", "emoji five"]], "output": []},
+      {"input": [["\u001cあいうえおか", "controls"]], "output": [["\u001cあいうえおか", "controls"]]},
+      {"input": [["ＡＢＣ ＤＥＦ", "fullwidth latin"]], "output": []},
+      {"input": [["はい、OK", "yes"], ["ミーティング開始です。", "start"]], "output": [["ミーティング開始です。", "start"]]}
+    ]
+  }
+}

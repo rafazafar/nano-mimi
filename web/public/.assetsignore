@@ -1,0 +1,2 @@
+# Over the 25 MiB asset limit; production loads these from jsDelivr (src/runtimeWasm.ts).
+assets/ort-wasm-simd-threaded.asyncify-*.wasm

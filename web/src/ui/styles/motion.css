@@ -1,0 +1,61 @@
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes bars {
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes flash {
+  from {
+    background: var(--flash);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .listening i {
+    transform: scaleY(0.65);
+  }
+
+  .caret {
+    opacity: 0.7;
+  }
+
+  .row.flash {
+    background: transparent;
+  }
+}
