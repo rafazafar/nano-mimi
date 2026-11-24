@@ -35,6 +35,20 @@ def test_clean_cat_output_strips_markers():
     assert translate.clean_cat_output(raw) == "Hello world"
 
 
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        "Avoid using overly formal and literal wording.",
+        "Avoid using overly formal and literal language.",
+        "Avoid overly literal wording.",
+        "Avoid overly formal wording.",
+    ],
+)
+def test_clean_cat_output_strips_overly_formal_suffix(suffix):
+    raw = f"The police arrived at the scene. {suffix}"
+    assert translate.clean_cat_output(raw) == "The police arrived at the scene"
+
+
 def test_prompt_and_tokens_short():
     content, max_tok = translate._prompt_and_tokens("こんにちは")
     assert max_tok == 16
