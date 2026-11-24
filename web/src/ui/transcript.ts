@@ -305,6 +305,7 @@ export class TranscriptView {
       const text = `${row.id}:${row.revisions}:${row.en}`;
       if (text !== this.announced) {
         this.announced = text;
+        setAttr(this.announce, "lang", targetLang(this.pair));
         setText(this.announce, row.en);
       }
       return;

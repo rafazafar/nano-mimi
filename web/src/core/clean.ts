@@ -169,7 +169,8 @@ export function tooShort(en: EnText, ja: JaText): boolean {
   return words * 6 < cpLength(jaContent(ja));
 }
 
-const EN_JA_LEAK_MARKERS: readonly string[] = ["translate the following", "translate this", "please translate", "into japanese"];
+/** Only the full prompt sentence counts: shorter phrases like "translate this" can be quoted English inside a real caption. */
+const EN_JA_LEAK_MARKERS: readonly string[] = ["translate the following english text into japanese"];
 const EN_JA_LABEL = new RegExp(
   `^[${PY_WHITESPACE}]*(?:japanese(?:[${PY_WHITESPACE}]+translation)?|translation|日本語(?:訳)?|翻訳|訳)[${PY_WHITESPACE}]*[:：][${PY_WHITESPACE}]*`,
   "iu",

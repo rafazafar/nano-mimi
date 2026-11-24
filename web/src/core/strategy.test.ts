@@ -47,6 +47,10 @@ describe("en-ja cleaning", () => {
     expect(cleaned).toMatchObject({ text: "こんにちは。", promptLeak: true, japaneseStripped: false });
   });
 
+  it("keeps quoted English that only resembles the prompt", () => {
+    expect(cleanCatEnJa("ボタンには「Translate this」と書かれています。").text).toBe("ボタンには「Translate this」と書かれています。");
+  });
+
   it("joins lines without spaces inside Japanese", () => {
     expect(cleanCatEnJa("今日は\n晴れです。").text).toBe("今日は晴れです。");
   });

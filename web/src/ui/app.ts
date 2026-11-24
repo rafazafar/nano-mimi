@@ -230,11 +230,12 @@ class App implements AppHandle {
     if (state.kind !== "needs-setup" || backend === state.setup.backend) return;
     if (backend === state.setup.autoBackend) clearItem(this.deps.storage, BACKEND_KEY);
     else writeItem(this.deps.storage, BACKEND_KEY, backend);
+    const { pair, endpoint, issues, autoBackend } = state.setup;
     try {
-      const { pair, endpoint, issues, autoBackend } = state.setup;
       const setup = await this.inspect(pair, backend, autoBackend, endpoint, issues);
-      if (setup !== null) this.dispatch({ type: "setup-updated", setup });
+      if (setup !== null && pair === this.pair) this.dispatch({ type: "setup-updated", setup });
     } catch (error) {
+      if (pair !== this.pair) return;
       this.dispatch({ type: "download-started" });
       this.dispatch({ type: "download-stopped", setup: state.setup, error: this.messages.errors.storageRead(errorMessage(error, this.messages)) });
     }
@@ -340,8 +341,9 @@ class App implements AppHandle {
   }
 
   private async pickFile(file: File): Promise<void> {
+    const pair = this.pair;
     const result = await readWavPick(file, this.messages);
-    if (this.appState.kind !== "ready") return;
+    if (this.appState.kind !== "ready" || pair !== this.pair) return;
     if (!result.ok) {
       this.dispatch({ type: "source-rejected", message: result.message });
       return;

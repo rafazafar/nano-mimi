@@ -35,7 +35,7 @@ The browser app supports `ja-en` and `en-ja`, with CAT-Translate for both. One t
 | Token cap | by Japanese length | `clamp(ceil(chars * 0.5) + 24, 32, 192)` |
 | Japanese-token ban | yes | no |
 | Output cleaning | prompt leaks, first sentence, Japanese stripped | prompt leaks and a leading label; Japanese kept |
-| Retry without context | empty, echo, too short, labelled | empty or echo |
+| Context turns and retry without context | context; retry on empty, echo, too short, labelled | no context turns, so no retry (with context CAT 1.4B often answered in English) |
 | Number check and grouped-digits retry | yes | off |
 | Glossary | Japanese substitution, ASR fixes and terms | English term to Japanese term, whole word, ignoring case; Japanese-source entries skipped |
 | Punctuation | appends `。` | appends `.` |
