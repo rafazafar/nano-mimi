@@ -15,6 +15,9 @@
 // route serves only redirects this worker issued for an allowed repo, never a
 // storage URL that a caller fetched from the Hub for another repo. It also drops the Xet headers, which makes huggingface_hub fall back to a
 // plain HTTP download instead of talking to the Xet storage service directly.
+//
+// Browsers can fetch from it too: every reply allows any origin and carries
+// Cross-Origin-Resource-Policy, so a cross-origin-isolated (COEP) page can load it.
 
 const UPSTREAM = "https://huggingface.co";
 
@@ -43,6 +46,14 @@ const DROPPED_HEADERS = [
 // Authorization and Cookie, stays behind: the proxy is anonymous.
 const FORWARDED_REQUEST_HEADERS = ["range", "if-none-match", "if-match", "if-range", "accept"];
 
+// Replaces the Hub's own CORS headers, which allow only huggingface.co.
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-expose-headers":
+    "Content-Length, Content-Range, Accept-Ranges, ETag, X-Repo-Commit, X-Linked-ETag, X-Linked-Size",
+  "cross-origin-resource-policy": "cross-origin",
+};
+
 const REPO = "[A-Za-z0-9][\\w.-]*/[\\w.-]+";
 const API_ROUTE = new RegExp(`^/api/models/(${REPO})(?:/revision/[^/]+)?/?$`);
 const RESOLVE_ROUTE = new RegExp(`^/(${REPO})/resolve/[^/]+/.+$`);
@@ -52,8 +63,19 @@ const CDN_ROUTE = /^\/_cdn\/([\w-]+)\/([a-z0-9.-]+)(\/.*)$/;
 
 export default {
   async fetch(request, env) {
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...CORS_HEADERS,
+          "access-control-allow-methods": "GET, HEAD, OPTIONS",
+          "access-control-allow-headers": request.headers.get("access-control-request-headers") ?? "",
+          "access-control-max-age": "86400",
+        },
+      });
+    }
     if (request.method !== "GET" && request.method !== "HEAD") {
-      return text(405, "Only GET and HEAD are allowed.", { allow: "GET, HEAD" });
+      return text(405, "Only GET and HEAD are allowed.", { allow: "GET, HEAD, OPTIONS" });
     }
     const url = new URL(request.url);
     const path = url.pathname;
@@ -83,24 +105,43 @@ export default {
 };
 
 async function proxy(request, target, origin, key) {
-  // Cloudflare rewrites the client's Accept-Encoding to "br, gzip". A compressed
-  // upstream reply loses its Content-Length and gets a weak ETag, and
-  // huggingface_hub rejects both, so always ask for the raw bytes.
   const headers = new Headers({ "user-agent": "mimivox-hf-proxy", "accept-encoding": "identity" });
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
 
-  const upstream = await fetch(target, { method: request.method, headers, redirect: "manual" });
+  let upstream = await fetch(target, { method: request.method, headers, redirect: "manual" });
+
+  // Deployed Workers ask the Hub for gzip whatever Accept-Encoding says, and
+  // hand back the decoded body without Content-Length and with a weak ETag.
+  // huggingface_hub rejects both. Only small text files arrive compressed, so
+  // buffer those to restore the length, and restore the ETag of the raw bytes.
+  let body = upstream.body;
+  const compressed = upstream.status === 200 && !upstream.headers.has("content-length");
+  if (compressed) {
+    if (request.method === "HEAD") upstream = await fetch(target, { method: "GET", headers, redirect: "manual" });
+    body = await upstream.arrayBuffer();
+  }
 
   const out = new Headers(upstream.headers);
   for (const name of DROPPED_HEADERS) out.delete(name);
+  for (const name of [...out.keys()]) if (name.startsWith("access-control-")) out.delete(name);
+  for (const [name, value] of Object.entries(CORS_HEADERS)) out.set(name, value);
+  if (compressed) {
+    out.delete("content-encoding");
+    out.set("content-length", String(body.byteLength));
+    // Cloudflare's edge drops Content-Length from HEAD replies with a text type.
+    // huggingface_hub reads the size from X-Linked-Size first.
+    out.set("x-linked-size", String(body.byteLength));
+    const etag = out.get("etag");
+    if (etag?.startsWith("W/")) out.set("etag", etag.slice(2));
+  }
 
   const location = out.get("location");
   if (location) out.set("location", await rewriteLocation(location, target, origin, key));
 
-  return new Response(request.method === "HEAD" ? null : upstream.body, {
+  return new Response(request.method === "HEAD" ? null : body, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers: out,
@@ -160,5 +201,5 @@ function repoAllowed(repo, env) {
 }
 
 function text(status, body, extra = {}) {
-  return new Response(body + "\n", { status, headers: { "content-type": "text/plain; charset=utf-8", ...extra } });
+  return new Response(body + "\n", { status, headers: { "content-type": "text/plain; charset=utf-8", ...CORS_HEADERS, ...extra } });
 }
