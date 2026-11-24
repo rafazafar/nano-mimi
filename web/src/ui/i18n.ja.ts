@@ -38,6 +38,7 @@ export const ja: Messages = {
     ledeError: "データは失われていません。下の原因を解消して、もう一度お試しください。",
     ledeLoading: "モデルはこの端末に保存されています。メモリへの読み込みにネットワークは不要です。",
     ledeSetup: (size) => `字幕はすべてこのブラウザー内で生成されます。音声認識モデルと翻訳モデル（${size}）は一度だけダウンロードされ、この端末に保存されます。`,
+    ledeBrowser: "字幕はすべてこのブラウザー内で生成されます。Chrome に内蔵された端末上の音声認識と翻訳を使います。",
     browserHeading: "このブラウザー",
     webgpuOk: (gpu) => (gpu === null ? "WebGPU を利用でき、モデルに必要な機能がそろっています。" : `WebGPU を利用でき（${gpu}）、モデルに必要な機能がそろっています。`),
     issue: (issue) => {
@@ -62,12 +63,15 @@ export const ja: Messages = {
       "ja-en": "日本語の音声は Haas-ja モデルで認識します。",
       "en-ja": "英語の音声は Parakeet モデルで認識します。",
     },
+    speechModelBrowser: "音声はこの端末上の Chrome が認識します。",
     backend: {
       webgpu: { title: "GPU（WebGPU）", detail: "最速です。音声認識をグラフィックスカードで実行します。" },
       wasm: { title: "CPU（WebAssembly）", detail: "使用可能な GPU がない端末向けです。速度は落ち、翻訳には引き続き WebGPU が必要です。" },
+      browser: { title: "スーパーライト（Chrome 内蔵）", detail: "Chrome に内蔵された端末上の音声認識と翻訳を使います。最も軽量ですが、早口やくだけた話し方では精度が下がります。" },
     },
     recommended: "この端末におすすめ",
     sizeTotal: (size) => `ダウンロード合計 ${size}`,
+    sizeBrowser: "このアプリからのダウンロードはありません。初回のみ Chrome が言語パック（約 270 MB）を取得します。",
     overrode: (recommended) => `おすすめの設定（${recommended}）から変更されています。`,
     notIsolated: "このページはクロスオリジン分離されていないため、CPU 処理は 1 スレッドで動作し、大幅に遅くなります。",
     gpuProblems: "上のブラウザー確認で、GPU 処理に関する問題が見つかりました。",
@@ -279,6 +283,7 @@ export const ja: Messages = {
     fallback: "（フォールバック）",
     singleThread: "、シングルスレッド",
     cores: (n) => `${n} コア`,
+    browserSpeech: "Chrome の端末上音声認識",
     theme: { system: (effective) => `システム（${effective}）`, light: "ライト", dark: "ダーク" },
   },
 };

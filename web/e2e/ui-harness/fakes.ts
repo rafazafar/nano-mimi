@@ -198,9 +198,8 @@ export class EnginesControl {
     };
     return {
       pair: this.pair,
-      asr: { transcribe: async () => asJaText("") },
+      recognition: { kind: "model", asr: { transcribe: async () => asJaText("") }, scorer: { score: async () => 0, reset: () => undefined } },
       mt: { translate: unused("mt.translate") },
-      scorer: { score: async () => 0, reset: () => undefined },
       info: ENGINE_INFO,
       dispose: () => {
         this.disposed += 1;

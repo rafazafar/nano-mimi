@@ -200,7 +200,8 @@ class App implements AppHandle {
       const endpoint = parseEndpointParam(deps.env.search);
       const issues = await deps.checkCapabilities(aggregateRequirements(buildManifest("webgpu", endpoint, pair)));
       const auto = asrBackend(issues);
-      const stored = parseBackend(readItem(deps.storage, BACKEND_KEY));
+      const parsed = parseBackend(readItem(deps.storage, BACKEND_KEY));
+      const stored = parsed === "browser" && !deps.env.builtInAi ? null : parsed;
       const setup = await this.inspect(pair, stored ?? auto, auto, endpoint, issues);
       if (setup === null || this.disposed) return;
       this.dispatch({ type: "checked", setup });
@@ -476,6 +477,7 @@ class App implements AppHandle {
         progress,
         gpuLabel: this.gpu?.kind === "ok" ? `${this.gpu.report.vendor} ${this.gpu.report.architecture}`.trim() : null,
         crossOriginIsolated: this.deps.env.crossOriginIsolated,
+        builtInAi: this.deps.env.builtInAi,
         loadElapsedMs: state.kind === "loading-engines" ? this.deps.clock.nowMs() - this.loadStartedMs : 0,
       });
     }

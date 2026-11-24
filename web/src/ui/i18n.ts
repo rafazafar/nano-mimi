@@ -52,6 +52,7 @@ export interface Messages {
     readonly ledeError: string;
     readonly ledeLoading: string;
     readonly ledeSetup: (size: string) => string;
+    readonly ledeBrowser: string;
     readonly browserHeading: string;
     readonly webgpuOk: (gpuLabel: string | null) => string;
     /** The line for a capability problem; English keeps the check's own wording. */
@@ -59,9 +60,12 @@ export interface Messages {
     readonly issuesNote: string;
     readonly speechHeading: string;
     readonly speechModel: ByPair<string>;
+    readonly speechModelBrowser: string;
     readonly backend: Readonly<Record<AsrBackend, { readonly title: string; readonly detail: string }>>;
     readonly recommended: string;
     readonly sizeTotal: (size: string) => string;
+    /** The browser option's size line: Chrome downloads its own packs, none of ours. */
+    readonly sizeBrowser: string;
     readonly overrode: (recommended: string) => string;
     readonly notIsolated: string;
     readonly gpuProblems: string;
@@ -227,6 +231,7 @@ export interface Messages {
     readonly fallback: string;
     readonly singleThread: string;
     readonly cores: (count: number) => string;
+    readonly browserSpeech: string;
     readonly theme: { readonly system: (effective: string) => string; readonly light: string; readonly dark: string };
   };
 }

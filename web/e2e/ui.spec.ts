@@ -83,6 +83,23 @@ test.describe("first-run setup", () => {
     await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), BACKEND_KEY)).toBeNull();
   });
 
+  test("offers the superlite option only where Chrome has on-device speech and translation", async ({ page }) => {
+    await openHarness(page);
+    await expectAppState(page, "needs-setup");
+    await expect(page.locator('.option[data-backend="browser"]')).toHaveCount(0);
+
+    await openHarness(page, { builtin: "1" });
+    await expectAppState(page, "needs-setup");
+    await page.locator('.option[data-backend="browser"]').click();
+    await expect(page.locator('.option[data-backend="browser"] input')).toBeChecked();
+    await expect(role(page, "download")).toHaveText("Load models");
+    await expect(role(page, "download")).toBeEnabled();
+    await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), BACKEND_KEY)).toBe("browser");
+
+    await role(page, "download").click();
+    await expectAppState(page, "loading-engines");
+  });
+
   test("shows the endpoint parameter, and ignores one it cannot trust", async ({ page }) => {
     await openHarness(page, { endpoint: "https://mirror.example.com/hf/" });
     await expectAppState(page, "needs-setup");

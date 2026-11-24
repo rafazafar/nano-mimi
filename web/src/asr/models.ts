@@ -118,7 +118,10 @@ export const PARAKEET_EN_INT8: ModelSpec = {
   files: [{ path: "encoder-model.int8.onnx", size: 652184014, sha256: "3e0581fda6ab843888b51e56d7ee78b6d5bc3237ec113af1f732d1d5286aa155" }],
 };
 
-export type AsrBackend = "webgpu" | "wasm";
+/** Where our own recognizer runs. */
+export type ModelBackend = "webgpu" | "wasm";
+/** `browser` uses Chrome's on-device speech and translation instead of any model of ours. */
+export type AsrBackend = ModelBackend | "browser";
 
 /** One encoder graph, with its external-data sidecar when the export has one. */
 export interface EncoderFile {
@@ -130,7 +133,7 @@ export interface EncoderFile {
 /** Everything one direction's recognizer loads: front-end tables, an encoder per backend, the decoder (wasm EP on both). */
 export interface AsrModelSet {
   readonly tables: ModelSpec;
-  readonly encoder: Readonly<Record<AsrBackend, EncoderFile>>;
+  readonly encoder: Readonly<Record<ModelBackend, EncoderFile>>;
   readonly decoder: ModelSpec;
 }
 
@@ -156,6 +159,7 @@ export const ASR_SETS: Readonly<Record<PairId, AsrModelSet>> = {
 
 /** What one pair's recognizer downloads on one backend. */
 export function asrModels(pair: PairId, backend: AsrBackend): readonly ModelSpec[] {
+  if (backend === "browser") return [];
   const set = ASR_SETS[pair];
   return [set.tables, set.encoder[backend].model, set.decoder];
 }

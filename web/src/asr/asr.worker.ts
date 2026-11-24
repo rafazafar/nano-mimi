@@ -10,7 +10,7 @@ import { ModelStore, OpfsBlobStore } from "../models";
 import { asyncifyWasmUrl } from "../runtimeWasm";
 import { parseHaasConfig } from "./config";
 import { HaasRecognizer, type HaasTables } from "./haas";
-import { ASR_SETS, type AsrBackend } from "./models";
+import { ASR_SETS, type ModelBackend } from "./models";
 import type { AsrDevice, AsrInit, AsrRequest, AsrResponse } from "./protocol";
 import { parsePieces } from "./tokenizer";
 
@@ -31,7 +31,7 @@ async function loadTables(store: ModelStore, tablesId: string): Promise<HaasTabl
   };
 }
 
-async function describeDevice(backend: AsrBackend): Promise<AsrDevice> {
+async function describeDevice(backend: ModelBackend): Promise<AsrDevice> {
   const base = { backend, crossOriginIsolated: self.crossOriginIsolated, hardwareConcurrency: navigator.hardwareConcurrency };
   if (backend !== "webgpu") return base;
   const adapter = await navigator.gpu.requestAdapter();

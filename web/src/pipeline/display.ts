@@ -17,6 +17,8 @@ import type { MtOutcome, MtResult } from "../mt/protocol";
 export type DisplayInput =
   /** A decoded segment of the utterance in flight (streaming engines only). */
   | { readonly kind: "partial"; readonly text: JaText; readonly timelineS: number }
+  /** The whole utterance so far (Chrome's recognizer); replaces the previous hypothesis. Provisional. */
+  | { readonly kind: "hypothesis"; readonly text: JaText; readonly timelineS: number }
   | {
       readonly kind: "final";
       readonly text: JaText;
@@ -120,7 +122,7 @@ export class DisplayStage {
 
   async #handle(input: DisplayInput): Promise<void> {
     try {
-      if (input.kind === "partial") this.#partial(input);
+      if (input.kind === "partial" || input.kind === "hypothesis") this.#partial(input);
       else {
         this.#queued.shift();
         this.#current = input;
@@ -140,8 +142,8 @@ export class DisplayStage {
     this.#reached.delete(input);
   }
 
-  #partial(input: Extract<DisplayInput, { kind: "partial" }>): void {
-    this.#accum = this.#accum === "" ? input.text : `${this.#accum} ${input.text}`;
+  #partial(input: Extract<DisplayInput, { kind: "partial" | "hypothesis" }>): void {
+    this.#accum = input.kind === "hypothesis" || this.#accum === "" ? input.text : `${this.#accum} ${input.text}`;
     this.#deps.emit({ kind: "partial_ja", ja: asJaText(this.#accum), timelineS: input.timelineS });
     this.#deps.coordinator.schedule(asJaText(this.#accum));
   }

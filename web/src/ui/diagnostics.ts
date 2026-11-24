@@ -164,6 +164,7 @@ export class DiagnosticsView {
 
 function describeAsrDevice(info: EngineInfo, m: Messages): string {
   const device = info.asr;
+  if (device === null) return m.diagnostics.browserSpeech;
   if (device.adapter === undefined) return `wasm, ${m.diagnostics.cores(device.hardwareConcurrency)}${device.crossOriginIsolated ? "" : m.diagnostics.singleThread}`;
   return `${device.adapter.vendor} ${device.adapter.architecture}${device.adapter.isFallbackAdapter ? m.diagnostics.fallback : ""}`.trim();
 }

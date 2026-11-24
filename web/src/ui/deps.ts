@@ -22,6 +22,8 @@ export interface AppEnv {
   /** `location.search`. */
   readonly search: string;
   readonly crossOriginIsolated: boolean;
+  /** Chrome's on-device speech recognition and Translator API exist here (the superlite option). */
+  readonly builtInAi: boolean;
   /** `(prefers-color-scheme: dark)`. */
   readonly systemDark: ColorSchemeQuery;
   /** Document Picture-in-Picture, or undefined where the browser has none. */

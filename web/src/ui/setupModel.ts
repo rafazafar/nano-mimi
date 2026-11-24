@@ -46,7 +46,7 @@ export function describeEndpoint(choice: EndpointChoice, m: Messages): string {
 export const MIRROR_ENDPOINT = "https://hf.zafar.jp";
 
 export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice, pair: PairId): Manifest {
-  const models = [...asrModels(pair, backend), CAT_MODEL];
+  const models = backend === "browser" ? [] : [...asrModels(pair, backend), CAT_MODEL];
   return endpoint.kind === "custom" ? { endpoint: endpoint.url, models } : { fallbackEndpoint: MIRROR_ENDPOINT, models };
 }
 
@@ -55,7 +55,7 @@ export const BACKEND_KEY = "mimivox.asr-backend.v1";
 export const PAIR_KEY = "mimivox.pair.v1";
 
 export function parseBackend(raw: string | null): AsrBackend | null {
-  return raw === "webgpu" || raw === "wasm" ? raw : null;
+  return raw === "webgpu" || raw === "wasm" || raw === "browser" ? raw : null;
 }
 
 export const fileKey = (ref: FileRef): string => `${ref.modelId}\u0000${ref.path}`;

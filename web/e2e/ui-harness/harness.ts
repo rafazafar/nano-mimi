@@ -69,6 +69,8 @@ const deps: AppDeps = {
   env: {
     search: location.search,
     crossOriginIsolated,
+    // `?builtin` stands in for a Chrome with on-device speech and translation.
+    builtInAi: new URLSearchParams(location.search).has("builtin"),
     systemDark: matchMedia("(prefers-color-scheme: dark)"),
     pip: pipApi(),
     secureContext: isSecureContext,

@@ -8,12 +8,14 @@ import type { Manifest } from "../models/types";
 import { MtClient } from "../mt/client";
 import type { LoadInfo } from "../mt/protocol";
 import type { PairId } from "../core/pair";
+import { prepareSpeech, prepareTranslator } from "./builtin";
 import type { AsrEngine, MtEngine } from "./types";
 
 export type EnginePhase = "vad" | "asr" | "mt";
 
 export interface EngineInfo {
-  readonly asr: AsrDevice;
+  /** Null when Chrome's own recognizer runs. */
+  readonly asr: AsrDevice | null;
   readonly asrLoadMs: number;
   readonly mt: LoadInfo;
   readonly mtLoadMs: number;
@@ -25,13 +27,17 @@ export interface EngineInfo {
 export interface Engines {
   /** The direction these engines were loaded for: the recognizer is the source language's. */
   readonly pair: PairId;
-  readonly asr: AsrEngine;
+  readonly recognition: Recognition;
   readonly mt: MtEngine;
-  readonly scorer: WindowScorer;
   readonly info: EngineInfo;
   /** Terminates both workers and frees their GPU memory. */
   dispose(): void;
 }
+
+/** Our VAD and recognizer, or Chrome's recognizer, which finds utterances itself and listens to the track. */
+export type Recognition =
+  | { readonly kind: "model"; readonly asr: AsrEngine; readonly scorer: WindowScorer }
+  | { readonly kind: "browser"; readonly lang: string };
 
 export function asrThreads(): number {
   if (!crossOriginIsolated) return 1;
@@ -57,6 +63,7 @@ export async function loadEngines(
     onPhase(phase, "done");
     return [value, performance.now() - start];
   };
+  if (backend === "browser") return loadBrowserEngines(pair, timed, t0);
   const [scorer, vadLoadMs] = await timed("vad", loadSilero);
   const [asr, asrLoadMs] = await timed("asr", () => AsrClient.create({ manifest, backend, pair, threads: asrThreads() }));
   let mt: MtClient;
@@ -69,15 +76,35 @@ export async function loadEngines(
   }
   return {
     pair,
-    asr: {
-      transcribe: (samples) => asr.transcribe(samples),
-    },
+    recognition: { kind: "model", asr: { transcribe: (samples) => asr.transcribe(samples) }, scorer },
     mt,
-    scorer,
     info: { asr: asr.device, asrLoadMs, mt: mt.load, mtLoadMs, vadLoadMs, totalLoadMs: performance.now() - t0 },
     dispose() {
       asr.terminate();
       mt.terminate();
     },
+  };
+}
+
+type Timed = <T>(phase: EnginePhase, load: () => Promise<T>) => Promise<[T, number]>;
+
+/** Chrome's on-device recognizer and translator: nothing of ours to download, Chrome installs its own packs. */
+async function loadBrowserEngines(pair: PairId, timed: Timed, t0: number): Promise<Engines> {
+  const [, vadLoadMs] = await timed("vad", async () => undefined);
+  const [lang, asrLoadMs] = await timed("asr", () => prepareSpeech(pair));
+  const [mt, mtLoadMs] = await timed("mt", () => prepareTranslator(pair));
+  return {
+    pair,
+    recognition: { kind: "browser", lang },
+    mt,
+    info: {
+      asr: null,
+      asrLoadMs,
+      mt: { tokenizerMs: 0, modelMs: mtLoadMs, adapter: null, runtime: "Chrome Translator (on device)" },
+      mtLoadMs,
+      vadLoadMs,
+      totalLoadMs: performance.now() - t0,
+    },
+    dispose: () => mt.destroy(),
   };
 }

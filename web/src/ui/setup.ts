@@ -21,6 +21,7 @@ export interface SetupModel {
   /** One line about the adapter the probe found, or null while unknown. */
   readonly gpuLabel: string | null;
   readonly crossOriginIsolated: boolean;
+  readonly builtInAi: boolean;
   /** Milliseconds since the engines began loading, ticking while they do. */
   readonly loadElapsedMs: number;
 }
@@ -191,7 +192,7 @@ export class SetupView {
       setText(this.elapsed, this.m.setup.loadingFor(formatMs(model.loadElapsedMs, this.m.units)));
       return;
     }
-    setText(this.lede, this.m.setup.ledeSetup(formatBytes(state.setup.totalBytes)));
+    setText(this.lede, state.setup.backend === "browser" ? this.m.setup.ledeBrowser : this.m.setup.ledeSetup(formatBytes(state.setup.totalBytes)));
     this.paintCapability(state.setup, model);
     this.paintBackend(state, model);
     this.paintModels(state, model);
@@ -222,10 +223,11 @@ export class SetupView {
     const { setup } = state;
     const text = this.m.setup;
     const locked = state.kind === "downloading";
-    setText(this.speechModel, text.speechModel[setup.pair]);
+    setText(this.speechModel, setup.backend === "browser" ? text.speechModelBrowser : text.speechModel[setup.pair]);
     if (this.optionsBuiltFor !== setup.manifest) {
       this.optionsBuiltFor = setup.manifest;
-      const options = (["webgpu", "wasm"] as const).map((backend) => {
+      const backends: readonly AsrBackend[] = model.builtInAi ? ["webgpu", "wasm", "browser"] : ["webgpu", "wasm"];
+      const options = backends.map((backend) => {
         const size = totalBytes(buildManifest(backend, setup.endpoint, setup.pair));
         const input = h("input", { type: "radio", name: "asr-backend", value: backend, "data-backend": backend, onchange: () => this.callbacks.onChooseBackend(backend) });
         return h(
@@ -237,7 +239,7 @@ export class SetupView {
             { class: "option-body" },
             h("span", { class: "option-title" }, text.backend[backend].title, backend === setup.autoBackend ? h("span", { class: "tag tag-ok" }, text.recommended) : null),
             h("span", { class: "option-detail" }, text.backend[backend].detail),
-            h("span", { class: "option-size" }, text.sizeTotal(formatBytes(size))),
+            h("span", { class: "option-size" }, backend === "browser" ? text.sizeBrowser : text.sizeTotal(formatBytes(size))),
           ),
         );
       });
@@ -269,7 +271,7 @@ export class SetupView {
     setAttr(this.endpointNote, "data-kind", setup.endpoint.kind);
     setText(
       this.overallText,
-      progress.totalBytes === 0 ? this.m.setup.noModels : this.m.setup.overall(formatBytes(progress.doneBytes), formatBytes(progress.totalBytes)),
+      setup.backend === "browser" ? this.m.setup.sizeBrowser : progress.totalBytes === 0 ? this.m.setup.noModels : this.m.setup.overall(formatBytes(progress.doneBytes), formatBytes(progress.totalBytes)),
     );
     setAttr(this.overallText, "data-state", downloading ? "downloading" : setup.missingBytes === 0 ? "ready" : "needs-download");
     setMeter(this.overall, progress.fraction);
@@ -284,7 +286,7 @@ export class SetupView {
           ? this.m.setup.retry(formatBytes(setup.missingBytes), setup.missingBytes < setup.totalBytes)
           : setupActionLabel(setup, this.m),
     );
-    this.primary.disabled = downloading || progress.totalBytes === 0;
+    this.primary.disabled = downloading || (progress.totalBytes === 0 && setup.backend !== "browser");
     setAttr(this.primary, "aria-busy", downloading ? "true" : null);
     setHidden(this.pause, !downloading);
   }

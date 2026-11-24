@@ -15,6 +15,8 @@ export interface AudioSource {
   readonly ended: Promise<void>;
   start(onSamples: (samples: Float32Array) => void): Promise<void>;
   stop(): Promise<void>;
+  /** The audio as a live track, for a recognizer that listens itself. Null before `start` for a file. */
+  track(): MediaStreamTrack | null;
 }
 
 interface Signal {
@@ -47,6 +49,7 @@ function streamSource(stream: MediaStream, label: string, deviceLostMessage: str
   return {
     label,
     ended: ended.promise,
+    track: () => stream.getAudioTracks()[0] ?? null,
     async start(onSamples) {
       try {
         capture = await startCapture(stream, onSamples);
@@ -69,10 +72,12 @@ function fileSource(name: string, bytes: Uint8Array): AudioSource {
   const ended = signal();
   let context: AudioContext | null = null;
   let capture: Capture | null = null;
+  let track: MediaStreamTrack | null = null;
   let tail: ReturnType<typeof setTimeout> | undefined;
   return {
     label: name,
     ended: ended.promise,
+    track: () => track,
     async start(onSamples) {
       const ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
       context = ctx;
@@ -80,6 +85,7 @@ function fileSource(name: string, bytes: Uint8Array): AudioSource {
         const buffer = ctx.createBuffer(1, samples.length, SAMPLE_RATE);
         buffer.getChannelData(0).set(samples);
         const destination = ctx.createMediaStreamDestination();
+        track = destination.stream.getAudioTracks()[0] ?? null;
         const player = ctx.createBufferSource();
         player.buffer = buffer;
         player.connect(destination);

@@ -1,11 +1,11 @@
 import type { PairId } from "../core/pair";
 import type { Manifest } from "../models";
 import type { Transcript } from "./haas";
-import type { AsrBackend } from "./models";
+import type { ModelBackend } from "./models";
 
 /** What the worker reports about the device it runs on, for the bench and diagnostics. */
 export interface AsrDevice {
-  readonly backend: AsrBackend;
+  readonly backend: ModelBackend;
   readonly crossOriginIsolated: boolean;
   readonly hardwareConcurrency: number;
   /** Absent on the wasm backend. */
@@ -23,7 +23,7 @@ export interface AsrInit {
   readonly manifest: Manifest;
   /** Picks the recognizer for the pair's source language. */
   readonly pair: PairId;
-  readonly backend: AsrBackend;
+  readonly backend: ModelBackend;
   /** wasm EP threads; needs crossOriginIsolated to exceed 1. */
   readonly threads: number;
 }

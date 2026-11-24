@@ -7,7 +7,7 @@ import { cpLength, deduplicatePhrases, isNonContentAsr } from "../core/text";
 import type { JaText } from "../core/types";
 import { AsrQueue } from "./asrQueue";
 import { BacklogMonitor } from "./backlog";
-import { DisplayStage } from "./display";
+import { DisplayStage, type DisplayInput } from "./display";
 import { GpuQueue } from "./gpuQueue";
 import { PartialEnCoordinator } from "./partialEn";
 import type { AsrEngine, AsrItem, Clock, EventListener, MtEngine, PipelineEvent, PipelineOptions } from "./types";
@@ -94,6 +94,11 @@ export class Pipeline {
   async submit(item: Omit<AsrItem, "enqueuedAtMs">): Promise<void> {
     await this.#queue.enqueue({ ...item, enqueuedAtMs: this.#deps.clock.nowMs() });
     this.#sampleBacklog();
+  }
+
+  /** Text from a recognizer that finds utterances itself (Chrome's), bypassing the VAD and the ASR queue. */
+  recognized(input: DisplayInput): Promise<void> {
+    return this.#display.enqueue(input);
   }
 
   /** No more audio: decode what is queued, finish every caption, then resolve. */

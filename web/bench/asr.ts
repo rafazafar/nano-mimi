@@ -1,5 +1,5 @@
 import { AsrClient } from "../src/asr/client";
-import { asrModels, type AsrBackend } from "../src/asr/models";
+import { asrModels, type ModelBackend } from "../src/asr/models";
 import { ModelStore, OpfsBlobStore, type Manifest } from "../src/models";
 
 export interface BenchConfig {
@@ -7,7 +7,7 @@ export interface BenchConfig {
   readonly endpoint: string;
   /** Base URL of `clips.json` and `audio/<sid>.f32`. */
   readonly clips: string;
-  readonly backend: AsrBackend;
+  readonly backend: ModelBackend;
   readonly threads: number;
   readonly n: number;
   readonly passes: number;
