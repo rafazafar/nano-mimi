@@ -12,6 +12,8 @@ import { OpfsBlobStore } from "../models/blob-store";
 import { ModelStore } from "../models/model-store";
 import type { Manifest, ModelSpec } from "../models/types";
 import { asyncifyWasmUrl } from "../runtimeWasm";
+import tjsAsyncifyMjs from "../../node_modules/@huggingface/transformers/node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.mjs?url";
+import tjsAsyncifyWasm from "../../node_modules/@huggingface/transformers/node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm?url";
 import type { Generate } from "./ladder";
 import type { AdapterInfo, LoadInfo } from "./protocol";
 import { CatTokenizer, type TjsTokenizer } from "./tokenizer";
@@ -22,11 +24,10 @@ import { CatTokenizer, type TjsTokenizer } from "./tokenizer";
  */
 const STORE_HOST = "https://model-store.invalid/";
 
-// The ORT build transformers.js bundles must load its own wasm, not the CDN copy it defaults to.
-const ORT_DIST = "../../node_modules/@huggingface/transformers/node_modules/onnxruntime-web/dist/";
+// The ORT build transformers.js bundles must load its own files, not the CDN copy it defaults to.
 const WASM_PATHS = {
-  mjs: new URL(`${ORT_DIST}ort-wasm-simd-threaded.asyncify.mjs`, import.meta.url).href,
-  wasm: asyncifyWasmUrl(__TJS_ORT_VERSION__, new URL(`${ORT_DIST}ort-wasm-simd-threaded.asyncify.wasm`, import.meta.url).href),
+  mjs: new URL(tjsAsyncifyMjs, import.meta.url).href,
+  wasm: asyncifyWasmUrl(__TJS_ORT_VERSION__, new URL(tjsAsyncifyWasm, import.meta.url).href),
 };
 
 function storeFetch(store: ModelStore, model: ModelSpec): typeof fetch {
