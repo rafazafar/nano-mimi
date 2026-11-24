@@ -78,6 +78,9 @@ export type AppAction =
   | { readonly type: "stop-requested" }
   | { readonly type: "session-ended"; readonly error: string | null };
 
+/** The states the setup screen is the stage for; the rest belong to the live view. */
+export type SetupStage = Extract<AppState, { kind: "booting" | "needs-setup" | "downloading" | "loading-engines" | "error" }>;
+
 export const initialAppState: AppState = { kind: "booting" };
 
 export const isFullyDownloaded = (setup: Setup): boolean => setup.missingBytes === 0 && setup.totalBytes > 0;
