@@ -1,6 +1,8 @@
 import { TranslationCache } from "../core/cache";
 import { TranslationContext } from "../core/context";
 import type { Glossary } from "../core/glossary";
+import type { PairId } from "../core/pair";
+import { strategyFor } from "../core/strategy";
 import { cpLength, deduplicatePhrases, isNonContentAsr } from "../core/text";
 import type { JaText } from "../core/types";
 import { AsrQueue } from "./asrQueue";
@@ -18,6 +20,8 @@ export interface PipelineDeps {
   readonly clock: Clock;
   /** Read at every translation, so a glossary edit applies to the next line. */
   readonly glossary: () => Glossary;
+  /** The translation direction; defaults to `ja-en`. `engines.pair` in the app. */
+  readonly pair?: PairId;
   readonly options: PipelineOptions;
 }
 
@@ -47,7 +51,9 @@ export class Pipeline {
     this.#deps = deps;
     this.#queue = new AsrQueue(deps.options, deps.clock);
     const cache = new TranslationCache();
-    const context = new TranslationContext();
+    const pair = deps.pair ?? "ja-en";
+    const strategy = strategyFor(pair);
+    const context = new TranslationContext(strategy.source.contextEligible);
     const emit = (event: PipelineEvent): void => this.#emit(event);
     const coordinator = new PartialEnCoordinator({
       gpu: this.#gpu,
@@ -56,7 +62,7 @@ export class Pipeline {
       context,
       glossary: deps.glossary,
       emit,
-      enabled: deps.options.partialEn,
+      enabled: deps.options.partialEn && strategy.preview,
     });
     this.#display = new DisplayStage({
       gpu: this.#gpu,
@@ -65,6 +71,7 @@ export class Pipeline {
       context,
       coordinator,
       glossary: deps.glossary,
+      pair,
       clock: deps.clock,
       emit,
       onSettled: () => this.#sampleBacklog(),

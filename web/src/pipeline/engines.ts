@@ -62,7 +62,7 @@ export async function loadEngines(
   let mt: MtClient;
   let mtLoadMs: number;
   try {
-    [mt, mtLoadMs] = await timed("mt", () => MtClient.start(manifest, CAT_MODEL.id));
+    [mt, mtLoadMs] = await timed("mt", () => MtClient.start(manifest, CAT_MODEL.id, pair));
   } catch (error) {
     asr.terminate();
     throw error;
