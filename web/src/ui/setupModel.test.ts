@@ -67,8 +67,8 @@ describe("downloadProgress", () => {
     const p = downloadProgress(
       manifest,
       states([
-        [HAAS_FP16.id, "encoder.onnx", { kind: "ready" }],
-        [HAAS_FP16.id, "encoder.onnx.data", { kind: "partial", bytes: encoderSize / 2 }],
+        [HAAS_FP16.id, "fp16/encoder.onnx", { kind: "ready" }],
+        [HAAS_FP16.id, "fp16/encoder.onnx.data", { kind: "partial", bytes: encoderSize / 2 }],
         [HAAS_DECODER.id, "fp32/decoder_joint.onnx", { kind: "verifying" }],
       ]),
     );
