@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MimiVox VAD debug</title>
+    <style>
+      body {
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+        margin: 1.5rem;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      table {
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #8884;
+        padding: 0.25rem 0.75rem;
+        text-align: right;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      #status,
+      #worklet-stats {
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>VAD debug</h1>
+    <p>
+      <button id="start-mic" type="button" disabled>Microphone</button>
+      <button id="start-tab" type="button" disabled>Tab audio</button>
+      <label>WAV file <input id="wav-file" type="file" accept=".wav,audio/wav" disabled /></label>
+      <button id="stop" type="button" disabled>Stop</button>
+    </p>
+    <p id="status" data-state="loading">Loading Silero...</p>
+    <p id="worklet-stats"></p>
+    <p><span id="count">0</span> utterances</p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>start (s)</th>
+          <th>end (s)</th>
+          <th>length (s)</th>
+          <th>VAD wait (s)</th>
+        </tr>
+      </thead>
+      <tbody id="utterances"></tbody>
+    </table>
+    <script type="module" src="/src/audio/vadPage.ts"></script>
+  </body>
+</html>
