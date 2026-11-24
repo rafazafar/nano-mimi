@@ -1,8 +1,13 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  build: { rollupOptions: { input: ["index.html", "setup.html"] } },
+  build: {
+    rollupOptions: {
+      input: { main: "index.html", setup: "setup.html", vad: "vad.html" },
+    },
+  },
   test: {
     include: ["src/**/*.test.ts"],
+    testTimeout: 60_000,
   },
 });
