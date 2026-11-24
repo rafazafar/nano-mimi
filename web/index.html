@@ -3,17 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MimiVox Web</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>MimiVox Live Captions</title>
+    <script>
+      // Apply a saved manual theme before first paint so a dark choice does not flash light.
+      try {
+        var saved = localStorage.getItem("mimivox.theme.v1");
+        if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+      } catch (_) {}
+    </script>
   </head>
   <body>
-    <main>
-      <h1>MimiVox Web</h1>
-      <section>
-        <h2>WebGPU</h2>
-        <p id="gpu-status" data-state="pending">Checking WebGPU...</p>
-        <dl id="gpu-details" hidden></dl>
-      </section>
-    </main>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="app"></div>
+    <noscript>MimiVox runs in the browser and needs JavaScript.</noscript>
+    <script type="module" src="/src/ui/main.ts"></script>
   </body>
 </html>
