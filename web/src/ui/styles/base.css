@@ -193,7 +193,7 @@ button {
     color 0.15s ease-out;
 }
 
-.pair-trigger:hover:not(:disabled) {
+.pair-trigger:hover:not([aria-disabled="true"]) {
   background: var(--surface-hover);
 }
 
@@ -203,7 +203,7 @@ button {
   color: var(--accent);
 }
 
-.pair-trigger:disabled {
+.pair-trigger[aria-disabled="true"] {
   background: var(--surface-2);
   border-color: var(--line);
   color: var(--ink-3);

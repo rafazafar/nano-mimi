@@ -43,8 +43,18 @@ export interface AppHandle {
 
 const TICK_MS = 500;
 
+/** Switching direction can change the UI language, which every view is built in, so a switch mounts a fresh `App`. */
 export function mountApp(root: HTMLElement, deps: AppDeps): AppHandle {
-  return new App(root, deps);
+  let app: App;
+  const mount = (): void => {
+    app = new App(root, deps, () => {
+      app.dispose();
+      mount();
+      root.querySelector<HTMLElement>(".pair-trigger")?.focus();
+    });
+  };
+  mount();
+  return { state: () => app.state(), captions: () => app.captions(), dispose: () => app.dispose() };
 }
 
 class App implements AppHandle {
@@ -63,11 +73,10 @@ class App implements AppHandle {
   private theme: ThemeChoice;
   private disposed = false;
   private dragDepth = 0;
-  /** The direction the app is set up for; changes only through `switchPair`. */
-  private pair: PairId;
+  private readonly pair: PairId;
   private readonly messages: Messages;
-  private glossary: GlossaryStore;
-  private glossaryEditor: GlossaryEditor;
+  private readonly glossary: GlossaryStore;
+  private readonly glossaryEditor: GlossaryEditor;
   private readonly shell: HTMLElement;
   private readonly header: HeaderView;
   private readonly setup: SetupView;
@@ -81,12 +90,13 @@ class App implements AppHandle {
   constructor(
     private readonly root: HTMLElement,
     private readonly deps: AppDeps,
+    private readonly remount: () => void,
   ) {
-    const m = messagesFor(pickLocale(deps.env.languages, deps.env.search));
+    this.pair = parsePair(readItem(deps.storage, PAIR_KEY)) ?? defaultPair(deps.env.languages);
+    const m = messagesFor(pickLocale(this.pair, deps.env.search));
     this.messages = m;
     document.documentElement.lang = m.locale;
     document.title = m.documentTitle;
-    this.pair = parsePair(readItem(deps.storage, PAIR_KEY)) ?? defaultPair(deps.env.languages);
     this.glossary = new GlossaryStore(deps.storage, this.pair);
     this.glossaryEditor = new GlossaryEditor(this.glossary, m);
     this.diagnostics = new DiagnosticsView(m);
@@ -313,27 +323,11 @@ class App implements AppHandle {
     else if (this.appState.kind === "loading-engines") void this.loadEngines();
   }
 
-  /**
-   * Moves to the other direction. The engines hold the old pair's recognizer, so they go, and so do the
-   * captions and any picked recording. The check then runs again for the new pair's models: all on disk
-   * leads straight to loading, else setup shows only the missing bytes.
-   */
+  /** Stores the new direction and starts over in it; models already on disk are not fetched again. */
   private switchPair(pair: PairId): void {
     if (pair === this.pair || !canSwitchPair(this.appState)) return;
     writeItem(this.deps.storage, PAIR_KEY, pair);
-    this.pair = pair;
-    this.engines?.dispose();
-    this.engines = null;
-    this.store = null;
-    this.lastPick = null;
-    this.captionState = emptyCaptions;
-    this.floating.refresh();
-    this.glossary = new GlossaryStore(this.deps.storage, pair);
-    const editor = new GlossaryEditor(this.glossary, this.messages);
-    this.glossaryEditor.el.replaceWith(editor.el);
-    this.glossaryEditor = editor;
-    this.dispatch({ type: "pair-switch-requested" });
-    void this.check();
+    this.remount();
   }
 
   private chooseSource(kind: SourceKind): void {
