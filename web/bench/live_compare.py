@@ -4,7 +4,6 @@
 
 The Python side comes from `pipeline.baseline.py`. Perceived latency is the eval's definition on both sides:
 VAD wait + queue wait + ASR + translate. The web side also has end to end, counted from the end of speech.
-The bar is p50 at most 1.5x and p95 at most 2x the Python figure.
 """
 
 import argparse
@@ -38,8 +37,7 @@ def norm(text):
     return re.sub(r"[\s。、．，.,!?！？]", "", unicodedata.normalize("NFKC", text))
 
 
-def python_gaps(rows):
-    """Row ids Python skipped: each one is a fragment merged into the row before it."""
+def python_merged_ids(rows):
     ids = [r["id"] for r in rows]
     return [i for i in range(ids[0], ids[-1] + 1) if i not in ids]
 
@@ -74,7 +72,7 @@ def main():
         print(
             f"run {run['index']}: {len(rows)} rows (python {len(py_last)}), empty English {empty or 'none'}, "
             f"JA exact {exact}/{len(pairs)}, normalized {loose}/{len(pairs)}, mean similarity {sum(sims) / max(1, len(sims)):.3f}, "
-            f"revised rows {revised or 'none'} (python merged ids {python_gaps(py_last) or 'none'})"
+            f"revised rows {revised or 'none'} (python merged ids {python_merged_ids(py_last) or 'none'})"
         )
         for w, p in pairs:
             if norm(w["ja"]) != norm(p["ja"]):

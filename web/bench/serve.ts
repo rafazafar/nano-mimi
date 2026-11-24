@@ -1,6 +1,4 @@
-// Local static file server for the bench drivers: a development stand-in for the model host and the clip store.
 // Serves `/<root name>/<path>` from the directory registered under that name, with Range and CORS.
-// Nothing is uploaded anywhere.
 import { createReadStream, statSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";

@@ -22,7 +22,6 @@ export function formatMs(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : formatSeconds(ms / 1000);
 }
 
-/** Whole seconds for the header indicator, where a decimal would only flicker. */
 export function formatBehind(backlogS: number, health: "behind" | "overloaded"): string {
   const s = Math.max(0, Math.round(backlogS));
   return health === "overloaded" ? `Overloaded, ${s} s behind` : `Behind by ${s} s`;

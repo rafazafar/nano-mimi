@@ -25,7 +25,6 @@ export interface LiveModel {
   readonly state: LiveState;
   readonly captions: CaptionState;
   readonly floating: FloatingState;
-  /** Seconds of audio the session has consumed. */
   readonly elapsedS: number;
 }
 
@@ -47,10 +46,6 @@ const EMPTY_COPY: Readonly<Record<SourceKind, string>> = {
   file: "Choose or drop a WAV recording, then press Start. It plays at normal speed and the captions follow it.",
 };
 
-/**
- * The live stage: toolbar, transcript, and the dock where the audio source is chosen and capture starts and
- * stops. The dock is the same strip in every state so nothing jumps when Start is pressed.
- */
 export class LiveView {
   readonly el: HTMLElement;
   readonly transcript: TranscriptView;
@@ -123,7 +118,6 @@ export class LiveView {
     );
   }
 
-  /** Shows or hides the drag-and-drop overlay. */
   setDropTarget(active: boolean): void {
     setHidden(this.drop, !active);
   }

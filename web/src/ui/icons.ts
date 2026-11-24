@@ -1,7 +1,3 @@
-/**
- * One icon family: 24 px grid, 1.75 stroke, round caps and joins. Drawn here rather than pulled from a
- * library because the app has no dependency to carry them and needs only these.
- */
 const PATHS = {
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>',
   tab: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9.5h18M7 7.25h.01"/>',

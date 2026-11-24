@@ -32,14 +32,6 @@ export function cleanAsrText(text: JaText): JaText | null {
   return isNonContentAsr(deduped) ? null : deduped;
 }
 
-/**
- * VAD utterances in, caption events out. Three stages share one GPU through one job queue:
- *
- *   submit() -> AsrQueue -> ASR loop -> DisplayStage -> events
- *                   GpuQueue: final MT > ASR > preview MT
- *
- * `submit` is the only way in and `subscribe` the only way out; the stages keep their own state.
- */
 export class Pipeline {
   readonly #deps: PipelineDeps;
   readonly #gpu = new GpuQueue();
@@ -162,7 +154,6 @@ export class Pipeline {
       audioEndS: item.audioEndS,
       speechEndMs: item.enqueuedAtMs - item.vadWaitS * 1000,
       vadWaitS: item.vadWaitS,
-      // In the ASR queue, plus any wait for the GPU behind a translation.
       queueWaitS: Math.max(0, (startMs - item.enqueuedAtMs) / 1000),
       asrS,
     });

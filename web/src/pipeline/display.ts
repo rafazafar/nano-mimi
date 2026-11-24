@@ -1,16 +1,16 @@
 import { translationCacheKey, type TranslationCache } from "../core/cache";
 import type { TranslationContext } from "../core/context";
-import { applyGlossary, type Glossary } from "../core/glossary";
+import type { Glossary } from "../core/glossary";
 import { isSplitContinuation } from "../core/revision";
-import { isMostlyEnglish, normalizePunctuation, rstripChars } from "../core/text";
+import { isMostlyEnglish, rstripChars } from "../core/text";
 import type { ContextTurn, EnText, JaText } from "../core/types";
 import { asEnText, asJaText } from "../core/types";
 import type { GpuQueue } from "./gpuQueue";
+import { prepareLine, type Line } from "./line";
 import type { PartialEnCoordinator } from "./partialEn";
 import type { Clock, EnSource, MtEngine, PipelineEvent, RowId, Timing } from "./types";
 import { asRowId } from "./types";
 
-/** What the ASR stage hands the display stage. */
 export type DisplayInput =
   /** A decoded segment of the utterance in flight (streaming engines only). */
   | { readonly kind: "partial"; readonly text: JaText; readonly timelineS: number }
@@ -29,13 +29,11 @@ export type DisplayInput =
 
 type FinalInput = Extract<DisplayInput, { kind: "final" }>;
 
-/** The latest emitted row, kept so a split continuation can revise it. */
 interface Utterance {
   readonly id: RowId;
   ja: JaText;
   readonly startS: number;
   endS: number;
-  /** The context as it stood before this row, so a merged re-translation sees what the first half saw. */
   readonly contextBefore: readonly ContextTurn[];
   readonly mergedIds: RowId[];
 }
@@ -45,11 +43,10 @@ interface Translated {
   readonly source: EnSource;
 }
 
-/** A continuation that translated: the row it revises, the new English, and the glossary-applied joined JA. */
 interface Merge {
   readonly target: Utterance;
   readonly translated: Translated;
-  readonly jaNorm: JaText;
+  readonly line: Line;
 }
 
 export interface DisplayDeps {
@@ -144,22 +141,20 @@ export class DisplayStage {
 
   async #final(input: FinalInput): Promise<void> {
     const { coordinator, context, emit, clock } = this.#deps;
-    const jaRaw = normalizePunctuation(input.text);
     const id = asRowId(this.#nextId++);
     const startMs = clock.nowMs();
 
-    // A final preempts any preview of this utterance.
     coordinator.cancel();
     let merge: Merge | null;
     let translated: Translated;
-    let jaNorm: JaText;
+    let line: Line;
     try {
       merge = await this.#tryMerge(input);
-      if (merge !== null) ({ translated, jaNorm } = merge);
+      if (merge !== null) ({ translated, line } = merge);
       else {
+        line = prepareLine(input.text, this.#deps.glossary());
         emit({ kind: "translating", id, timelineS: input.timelineS, ja: input.text });
-        translated = await this.#translateLine(jaRaw, context.pairs(), id);
-        jaNorm = applyGlossary(jaRaw, this.#deps.glossary());
+        translated = await this.#translateLine(line, context.pairs(), id);
       }
     } finally {
       coordinator.resetUtterance();
@@ -169,7 +164,7 @@ export class DisplayStage {
 
     if (merge !== null) context.restore(merge.target.contextBefore);
     const contextBefore = context.pairs();
-    context.add(jaNorm, en);
+    context.add(line.sent, en);
 
     const timing: Timing = {
       vadWaitS: input.vadWaitS,
@@ -210,41 +205,33 @@ export class DisplayStage {
     };
   }
 
-  /**
-   * The VAD split one sentence: translate the joined JA as one line, with the context as it was before the
-   * first half. Null when this is not a continuation or the joined line came back empty.
-   */
   async #tryMerge(input: FinalInput): Promise<Merge | null> {
     const prev = this.#prev;
     if (prev === null || !this.#continues(prev, input)) return null;
-    const joinedRaw = normalizePunctuation(asJaText(prev.ja + input.text));
-    this.#deps.emit({ kind: "revising", targetId: prev.id, ja: joinedRaw });
-    const translated = await this.#translateLine(joinedRaw, prev.contextBefore, prev.id);
+    const joined = prepareLine(asJaText(prev.ja + input.text), this.#deps.glossary());
+    this.#deps.emit({ kind: "revising", targetId: prev.id, ja: joined.plain });
+    const translated = await this.#translateLine(joined, prev.contextBefore, prev.id);
     if (translated.en === "") {
       this.#deps.emit({ kind: "revision_failed", targetId: prev.id });
       return null;
     }
-    return { target: prev, translated, jaNorm: applyGlossary(joinedRaw, this.#deps.glossary()) };
+    return { target: prev, translated, line: joined };
   }
 
-  /** The VAD cut one sentence in two: this fragment starts soon after the previous row ended mid-sentence. */
   #continues(prev: Utterance, input: FinalInput): boolean {
     if (isMostlyEnglish(prev.ja) || isMostlyEnglish(input.text)) return false;
     return isSplitContinuation(prev.ja, input.text, input.timelineS - prev.endS);
   }
 
-  /** Passthrough, cache or MT for one punctuation-normalized JA line. */
-  async #translateLine(jaRaw: JaText, turns: readonly ContextTurn[], rowId: RowId): Promise<Translated> {
+  async #translateLine(line: Line, turns: readonly ContextTurn[], rowId: RowId): Promise<Translated> {
     const { gpu, mt, cache, emit } = this.#deps;
-    const jaNorm = applyGlossary(jaRaw, this.#deps.glossary());
-    // Judged on the text before glossary substitution: a line that only became English because of a term
-    // swap still needs MT.
-    if (isMostlyEnglish(jaRaw)) return { en: asEnText(rstripChars(jaNorm, "。")), source: "passthrough" };
-    const hit = cache.lookup(jaNorm);
+    const { plain, sent } = line;
+    if (isMostlyEnglish(plain)) return { en: asEnText(rstripChars(sent, "。")), source: "passthrough" };
+    const hit = cache.lookup(sent);
     if (hit !== undefined) return { en: hit, source: "cache" };
 
     const job = gpu.submit("mt-final", async (signal) => {
-      const translation = mt.translate(jaNorm, turns, {
+      const translation = mt.translate(sent, turns, {
         preview: false,
         onToken: (delta) => emit({ kind: "en_token", id: rowId, delta }),
       });
@@ -256,8 +243,7 @@ export class DisplayStage {
       const outcome = await job.outcome;
       if (outcome.kind === "done" && outcome.value.kind === "done") {
         const en = outcome.value.result.en;
-        // An empty result is never cached: the next occurrence should get another try.
-        if (en !== "" && translationCacheKey(jaNorm) !== "") cache.storeFinal(jaNorm, en);
+        if (en !== "" && translationCacheKey(sent) !== "") cache.storeFinal(sent, en);
         return { en, source: en === "" ? "failed" : "mt" };
       }
     } catch (error) {

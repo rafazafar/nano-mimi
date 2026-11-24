@@ -82,7 +82,6 @@ export function validateEntry(entries: readonly GlossaryEntry[], candidate: Glos
   return null;
 }
 
-/** The user's glossary, persisted on every change. The pipeline reads it through `glossary()` before each line. */
 export class GlossaryStore {
   private list: readonly GlossaryEntry[];
   private map: Glossary;

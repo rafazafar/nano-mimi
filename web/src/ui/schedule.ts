@@ -1,4 +1,3 @@
-/** The timing functions of a window; the app's window and the floating one both satisfy it. */
 export interface FrameHost {
   requestAnimationFrame(callback: () => void): number;
   cancelAnimationFrame(id: number): void;
@@ -9,7 +8,6 @@ export interface FrameHost {
 export interface FrameScheduler {
   /** Asks for one render. Any number of calls before it runs make one render. */
   schedule(): void;
-  /** Cancels a pending render. */
   cancel(): void;
 }
 

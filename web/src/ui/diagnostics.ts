@@ -13,11 +13,9 @@ export interface DiagnosticsModel {
   readonly engines: EngineInfo | null;
   readonly storageGrant: StorageGrant | null;
   readonly theme: string;
-  /** The session's rows; the latency figures are computed from them while the panel is open. */
   readonly rows: readonly CaptionRow[];
 }
 
-/** The adapter rows the original shell showed, with the same `data-field` names the e2e test reads. */
 export function gpuRows(report: GpuReport): readonly (readonly [string, string])[] {
   return [
     ["vendor", report.vendor],
@@ -57,10 +55,6 @@ class KeyValues {
   }
 }
 
-/**
- * The collapsed-by-default panel for whoever needs to know why captions are slow or absent: the adapter,
- * the runtime facts, how long each engine took to load, and perceived latency over this session.
- */
 export class DiagnosticsView {
   readonly el: HTMLDetailsElement;
   private readonly status: HTMLElement;
@@ -153,7 +147,6 @@ export class DiagnosticsView {
     this.loads.set("load-total", engines === null ? "-" : formatMs(engines.totalLoadMs));
   }
 
-  /** Sorting every settled row each frame would cost more than the panel is worth, so only an open panel pays. */
   private paintLatency(rows: readonly CaptionRow[]): void {
     if (!this.el.open || rows === this.statsRows) return;
     this.statsRows = rows;

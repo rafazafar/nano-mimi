@@ -25,7 +25,6 @@ export interface SessionOptions {
 
 export interface Session {
   readonly sourceLabel: string;
-  /** Seconds of audio the VAD has consumed. */
   audioSeconds(): number;
   /** Stops capture, closes the open utterance, lets queued speech finish, then resolves. */
   stop(): Promise<void>;

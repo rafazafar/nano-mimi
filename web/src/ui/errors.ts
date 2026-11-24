@@ -9,11 +9,6 @@ export function errorMessage(error: unknown): string {
   return typeof error === "string" && error !== "" ? error : "Something went wrong.";
 }
 
-/**
- * What a failed Start means for this source, in terms the viewer can act on. `startSession` throws whatever
- * the browser or the capture code threw; the friendly cases are the permission and device failures, and the
- * rest keep the thrown message because it is the most specific thing we have.
- */
 export function describeStartError(error: unknown, source: SourceKind): string {
   const message = errorMessage(error);
   switch (errorName(error)) {

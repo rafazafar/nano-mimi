@@ -1,9 +1,3 @@
-/*
- * MimiVox live captions. A tool you glance at while someone speaks: calm neutrals tinted toward one indigo,
- * a single accent for actions and "this is live", amber and red only for "behind" and "broken".
- * Light and dark follow prefers-color-scheme; [data-theme] on <html> is the manual override.
- */
-
 :root {
   color-scheme: light;
 

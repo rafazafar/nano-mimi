@@ -2,7 +2,6 @@ import { ASR_MODELS, type AsrBackend } from "../asr/models";
 import { CAT_MODEL } from "../models/manifest";
 import { DEFAULT_ENDPOINT, formatBytes, totalBytes, type FileRef, type FileState, type Manifest } from "../models/types";
 
-/** Where the models come from: the built-in default, an endpoint given in the URL, or one that did not parse. */
 export type EndpointChoice =
   | { readonly kind: "default" }
   | { readonly kind: "custom"; readonly url: string }
@@ -27,7 +26,6 @@ export function parseEndpointParam(search: string): EndpointChoice {
 
 const RAW_ENDPOINT_SHOWN = 80;
 
-/** One sentence telling the viewer where the bytes come from, and why if the address asked for something we refused. */
 export function describeEndpoint(choice: EndpointChoice): string {
   const fallback = new URL(DEFAULT_ENDPOINT).host;
   switch (choice.kind) {
@@ -42,7 +40,6 @@ export function describeEndpoint(choice: EndpointChoice): string {
   }
 }
 
-/** The files each speech backend needs, plus the translator. The endpoint is left unset for the default. */
 export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice): Manifest {
   const models = [...ASR_MODELS[backend], CAT_MODEL];
   return endpoint.kind === "custom" ? { endpoint: endpoint.url, models } : { models };
@@ -56,7 +53,6 @@ export function parseBackend(raw: string | null): AsrBackend | null {
 
 export const fileKey = (ref: FileRef): string => `${ref.modelId}\u0000${ref.path}`;
 
-/** The setup screen's main button: what pressing it will do, with the bytes it involves. */
 export function setupActionLabel(setup: { readonly totalBytes: number; readonly missingBytes: number }): string {
   if (setup.missingBytes <= 0) return "Load models";
   if (setup.missingBytes < setup.totalBytes) return `Resume download, ${formatBytes(setup.missingBytes)} left`;
@@ -101,7 +97,6 @@ function doneBytesOf(state: FileState, size: number): number {
   }
 }
 
-/** Folds the store's per-file states into the totals and per-file bars the setup screen draws. */
 export function downloadProgress(manifest: Manifest, states: ReadonlyMap<string, FileState>): DownloadProgress {
   const failures: string[] = [];
   const models = manifest.models.map((model): ModelProgress => {

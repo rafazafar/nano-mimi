@@ -19,11 +19,6 @@ interface EntryRow {
   readonly remove: HTMLButtonElement;
 }
 
-/**
- * Add, edit and remove glossary rows. Each commit goes to the store, which persists it and which the session
- * reads before every line. Order is the store's insertion order, shown as listed because it breaks ties
- * between equally long sources.
- */
 export class GlossaryEditor {
   readonly el: HTMLElement;
   private readonly list: HTMLElement;
@@ -109,23 +104,22 @@ export class GlossaryEditor {
     this.store.remove(index);
   }
 
-  /** `force` overwrites the field being edited, to revert a rejected edit. */
-  private render(force = false): void {
+  private render(overwriteFocused = false): void {
     const entries = this.store.entries();
     if (entries.length !== this.rows.length) {
       this.rows = entries.map((_, i) => this.buildRow(i));
       this.list.replaceChildren(...this.rows.map((r) => r.el));
     }
-    entries.forEach((entry, i) => this.paintRow(this.rows[i]!, entry, force));
+    entries.forEach((entry, i) => this.paintRow(this.rows[i]!, entry, overwriteFocused));
     setHidden(this.emptyLine, entries.length > 0);
     setHidden(this.unsaved, this.store.isSaved());
     this.paintHint();
   }
 
-  private paintRow(row: EntryRow, entry: GlossaryEntry, force: boolean): void {
+  private paintRow(row: EntryRow, entry: GlossaryEntry, overwriteFocused: boolean): void {
     const kind = entryKind(entry);
-    if (force || document.activeElement !== row.source) row.source.value = entry.source;
-    if (force || document.activeElement !== row.target) row.target.value = entry.target;
+    if (overwriteFocused || document.activeElement !== row.source) row.source.value = entry.source;
+    if (overwriteFocused || document.activeElement !== row.target) row.target.value = entry.target;
     setAttr(row.el, "data-kind", kind);
     setText(row.kind, KIND_LABEL[kind]);
     setAttr(row.kind, "title", KIND_HINT[kind]);

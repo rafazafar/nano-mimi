@@ -12,7 +12,6 @@ export type PipSupport =
 export const PIP_UNSUPPORTED = "Floating captions need Chrome or Edge 116 or later.";
 export const PIP_INSECURE = "Floating captions need a secure page (https or localhost).";
 
-/** Looks for the API on `host` (the `window`) without assuming its shape, since a page can also run in other browsers. */
 export function detectPip(host: { readonly documentPictureInPicture?: unknown; readonly isSecureContext?: boolean }): PipSupport {
   const api = host.documentPictureInPicture;
   if (typeof api !== "object" || api === null || typeof (api as { requestWindow?: unknown }).requestWindow !== "function") {
@@ -29,7 +28,6 @@ export interface PipHandle {
 
 export type PipOpenResult = { readonly ok: true; readonly handle: PipHandle } | { readonly ok: false; readonly message: string };
 
-/** The reason `requestWindow` refused, in words a viewer can act on. */
 export function describePipError(error: unknown): string {
   const name = typeof error === "object" && error !== null && "name" in error ? String((error as { name: unknown }).name) : "";
   switch (name) {
@@ -79,7 +77,6 @@ export interface OpenPipOptions {
  */
 export async function openPictureInPicture(api: DocumentPipApi, opener: Document, options: OpenPipOptions): Promise<PipOpenResult> {
   try {
-    // A window left over from an earlier mount would otherwise close under us after we hand out the new one.
     const stale = api.window;
     if (stale !== undefined && stale !== null && !stale.closed) stale.close();
     const win = await api.requestWindow({ width: options.width ?? 460, height: options.height ?? 320 });
@@ -103,7 +100,6 @@ export async function openPictureInPicture(api: DocumentPipApi, opener: Document
           try {
             win.close();
           } catch {
-            // Already gone.
           }
           finish();
         },

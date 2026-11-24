@@ -1,6 +1,5 @@
 import { defineConfig } from "vitest/config";
 
-/** Threaded wasm (the ASR fallback and Silero) needs SharedArrayBuffer, which needs a cross-origin-isolated page. */
 const ISOLATION_HEADERS = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Embedder-Policy": "require-corp",

@@ -1,4 +1,3 @@
-/** The slice of `Storage` the UI uses, so tests and a blocked `localStorage` both have a stand-in. */
 export interface KeyValueStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -53,6 +52,5 @@ export function clearItem(storage: KeyValueStorage, key: string): void {
   try {
     storage.removeItem(key);
   } catch {
-    // Nothing to clear.
   }
 }

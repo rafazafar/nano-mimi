@@ -6,7 +6,6 @@ import type { Clock, EnginePhase, Engines, Session, SessionOptions } from "../pi
 import type { DocumentPipApi } from "./pip";
 import type { KeyValueStorage } from "./storage";
 
-/** What the UI needs from the model store; `ModelStore` satisfies it as is. */
 export interface ModelStoreLike {
   /** Reads every file's state from disk, reporting each through `onState`. No network. */
   refresh(): Promise<void>;
@@ -18,7 +17,6 @@ export interface ModelStoreLike {
 
 export type ColorSchemeQuery = Pick<MediaQueryList, "matches" | "addEventListener" | "removeEventListener">;
 
-/** The facts about the page the UI reads once, so tests can stage any browser. */
 export interface AppEnv {
   /** `location.search`. */
   readonly search: string;
@@ -31,10 +29,6 @@ export interface AppEnv {
   readonly secureContext: boolean;
 }
 
-/**
- * Everything the app touches outside the DOM. `realDeps()` wires the browser, the model store and the
- * pipeline; tests pass scripted stand-ins, which is why no product code path contains a fake.
- */
 export interface AppDeps {
   readonly probeGpu: () => Promise<GpuResult>;
   readonly checkCapabilities: (req: GpuRequirements) => Promise<readonly CapabilityIssue[]>;

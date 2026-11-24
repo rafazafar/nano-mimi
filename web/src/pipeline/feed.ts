@@ -2,7 +2,6 @@ import { emitted, type StreamingVad } from "../audio/streamingVad";
 import { SAMPLE_RATE, type Candidate } from "../audio/vadStateMachine";
 import type { AsrItem } from "./types";
 
-/** Where the feed delivers: the pipeline, narrowed to what the feed uses. */
 export interface UtteranceSink {
   submit(item: Omit<AsrItem, "enqueuedAtMs">): Promise<void>;
   advanceAudio(seconds: number): void;
@@ -26,7 +25,6 @@ export class UtteranceFeed {
     this.#onError = onError;
   }
 
-  /** Seconds of audio received so far. */
   get audioSeconds(): number {
     return this.#fedSamples / SAMPLE_RATE;
   }
@@ -43,7 +41,6 @@ export class UtteranceFeed {
     await this.#chain;
   }
 
-  /** One VAD call and the submits it yields, after everything queued before it. A failure is reported and does not stop the stream. */
   #step(run: () => Promise<readonly Candidate[]>): void {
     this.#chain = this.#chain.then(async () => {
       try {

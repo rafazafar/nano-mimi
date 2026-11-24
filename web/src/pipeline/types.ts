@@ -12,10 +12,6 @@ export interface Clock {
 }
 export const performanceClock: Clock = { nowMs: () => performance.now() };
 
-/**
- * One VAD utterance bound for ASR. Coalescing several keeps the oldest `enqueuedAtMs`,
- * the newest `audioEndS` and the longest `vadWaitS`, as `coalesce_asr_items` does.
- */
 export interface AsrItem {
   readonly samples: Float32Array;
   readonly enqueuedAtMs: number;
@@ -25,7 +21,6 @@ export interface AsrItem {
   readonly vadWaitS: number;
 }
 
-/** What each stage of one caption cost. `perceivedS` is the eval's formula, `endToEndS` the wall clock. */
 export interface Timing {
   readonly vadWaitS: number;
   /** In the ASR queue, plus any wait for the GPU, before the decode started. */
@@ -39,7 +34,6 @@ export interface Timing {
   readonly endToEndS: number;
 }
 
-/** Where a row's English came from. */
 export type EnSource = "mt" | "cache" | "passthrough" | "failed";
 
 export type Health = "ok" | "behind" | "overloaded";
@@ -99,16 +93,11 @@ export interface TranslateOptions {
   readonly onToken?: (delta: string) => void;
 }
 
-/** Translation. `MtClient` satisfies it; tests supply fakes. */
 export interface MtEngine {
   translate(ja: JaText, context: readonly ContextTurn[], options: TranslateOptions): Translation;
 }
 
 export interface PipelineOptions {
-  /**
-   * `live` keeps at most `liveKeep` utterances waiting and merges the rest into one decode, so capture never
-   * stalls and no speech is dropped. `lossless` (file replay) queues up to `capacity` and makes the feeder wait.
-   */
   readonly queue: { readonly kind: "live"; readonly keep: number } | { readonly kind: "lossless"; readonly capacity: number };
   /** Seconds an item may wait before a dequeue merges it with whatever is queued behind it (live only). */
   readonly staleWaitS: number;

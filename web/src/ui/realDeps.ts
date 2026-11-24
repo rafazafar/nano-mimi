@@ -4,7 +4,6 @@ import { loadEngines, performanceClock, startSession } from "../pipeline";
 import type { AppDeps } from "./deps";
 import { browserStorage } from "./storage";
 
-/** The browser, the W3 model store on OPFS and the live pipeline. The only place the app meets them. */
 export function realDeps(): AppDeps {
   return {
     probeGpu: () => probeGpu(navigator.gpu),

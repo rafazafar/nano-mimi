@@ -14,7 +14,6 @@ export interface SetupCallbacks {
   onRetry(): void;
 }
 
-/** Everything the setup screen reads besides the app state. */
 export interface SetupModel {
   readonly state: SetupStage;
   readonly progress: DownloadProgress;
@@ -36,7 +35,6 @@ const PHASE_LABEL: Readonly<Record<EnginePhase, string>> = {
   mt: "Translation",
 };
 
-/** Whether the setup screen (rather than the live view) is the stage for this state. */
 export const isSetupState = (state: AppState): state is SetupStage =>
   state.kind === "booting" || state.kind === "needs-setup" || state.kind === "downloading" || state.kind === "loading-engines" || state.kind === "error";
 
@@ -81,10 +79,6 @@ function setMeter(m: Meter, fraction: number): void {
   if (m.fill.style.transform !== scale) m.fill.style.transform = scale;
 }
 
-/**
- * First-run setup, in one column: what this browser can do, which speech engine to use, the download, and
- * the load into memory. It is also where an unrecoverable error lands, with the step to retry.
- */
 export class SetupView {
   readonly el: HTMLElement;
   private readonly lede: HTMLElement;

@@ -1,14 +1,13 @@
 import { translationCacheKey, type TranslationCache } from "../core/cache";
 import type { TranslationContext } from "../core/context";
-import { applyGlossary, type Glossary } from "../core/glossary";
-import { cpLength, isMostlyEnglish, normalizePunctuation, pyStrip } from "../core/text";
+import type { Glossary } from "../core/glossary";
+import { cpLength, isMostlyEnglish, pyStrip } from "../core/text";
 import { asEnText, asJaText, type EnText, type JaText } from "../core/types";
 import type { GpuJob, GpuQueue } from "./gpuQueue";
+import { prepareLine } from "./line";
 import type { MtEngine, PipelineEvent } from "./types";
 
-/** Clause-ending marks: a line holding one is worth previewing even when it is short. */
 const CLAUSE_END = ["。", "？", "?", "！", "!"];
-/** A preview this short counts as complete without a sentence mark, and seeds the cache. */
 const COMPLETE_IF_SHORTER = 25;
 
 export interface PartialEnDeps {
@@ -78,8 +77,7 @@ export class PartialEnCoordinator {
     if (length < PartialEnCoordinator.MIN_JA_LEN || isMostlyEnglish(text)) return;
     const hasClauseEnd = CLAUSE_END.some((mark) => text.includes(mark));
     if (length < PartialEnCoordinator.PREFER_LEN && !hasClauseEnd) return;
-    // The same text the final will translate, so a cached preview is the final's translation.
-    const sent = applyGlossary(normalizePunctuation(text), this.#deps.glossary());
+    const { sent } = prepareLine(text, this.#deps.glossary());
     if (translationCacheKey(sent) === "" || this.#deps.cache.has(sent)) return;
     if (this.#previewedLen > 0 && length < this.#previewedLen + PartialEnCoordinator.REPREVIEW_GROWTH) return;
 

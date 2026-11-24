@@ -106,7 +106,6 @@ export class GpuQueue {
     );
   }
 
-  /** A job that throws before returning a promise must fail its own outcome, not leave the GPU marked busy. */
   #invoke(entry: Entry): Promise<unknown> {
     try {
       return entry.run(entry.ctrl.signal);

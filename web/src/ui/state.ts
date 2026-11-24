@@ -16,7 +16,6 @@ export const ENGINE_PHASES: readonly EnginePhase[] = ["vad", "asr", "mt"];
 
 export const pendingPhases: EnginePhases = { vad: { kind: "pending" }, asr: { kind: "pending" }, mt: { kind: "pending" } };
 
-/** What the capability check and the manifest say about this machine; fixed until the user picks another backend. */
 export interface Setup {
   readonly manifest: Manifest;
   readonly endpoint: EndpointChoice;
@@ -30,17 +29,12 @@ export interface Setup {
   readonly missingBytes: number;
 }
 
-/** What a loaded app carries from `ready` through `stopping`. */
 interface Loaded {
   readonly setup: Setup;
   readonly loadMs: number;
   readonly source: SourceChoice;
 }
 
-/**
- * The app's one lifecycle. Per-chunk download bytes and caption rows change too fast to live here; they
- * sit beside it (the controller's file states and the caption reducer) and the views read all three.
- */
 export type AppState =
   | { readonly kind: "booting" }
   | { readonly kind: "needs-setup"; readonly setup: Setup; readonly error: string | null }
@@ -78,7 +72,6 @@ export type AppAction =
   | { readonly type: "stop-requested" }
   | { readonly type: "session-ended"; readonly error: string | null };
 
-/** The states the setup screen is the stage for; the rest belong to the live view. */
 export type SetupStage = Extract<AppState, { kind: "booting" | "needs-setup" | "downloading" | "loading-engines" | "error" }>;
 
 export const initialAppState: AppState = { kind: "booting" };
@@ -89,7 +82,6 @@ function loadingEngines(setup: Setup): AppState {
   return { kind: "loading-engines", setup, phases: pendingPhases };
 }
 
-/** Whether Start can be pressed: loaded, and the chosen source has audio. */
 export function canStart(state: AppState): boolean {
   return state.kind === "ready" && !(state.source.kind === "file" && state.source.pick === null);
 }

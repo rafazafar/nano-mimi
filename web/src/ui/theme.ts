@@ -6,7 +6,6 @@ export type Theme = "light" | "dark";
 
 export const THEME_KEY = "mimivox.theme.v1";
 
-/** Anything but an exact `light` or `dark` is no choice at all. */
 export function parseThemeChoice(raw: string | null): ThemeChoice {
   return raw === "light" || raw === "dark" ? raw : "system";
 }
@@ -33,7 +32,6 @@ export function saveTheme(storage: KeyValueStorage, choice: ThemeChoice): void {
   else writeItem(storage, THEME_KEY, choice);
 }
 
-/** Puts the choice on `<html>`; the stylesheet keys its tokens on `data-theme` and falls back to the media query. */
 export function applyTheme(root: HTMLElement, choice: ThemeChoice): void {
   if (choice === "system") delete root.dataset["theme"];
   else root.dataset["theme"] = choice;

@@ -1,6 +1,6 @@
 import type { Health, PipelineEvent } from "./types";
 
-/** Port of `HEALTH_*` in config.py. Each state clears below its own, lower threshold so the indicator does not flicker. */
+/** Port of `HEALTH_*` in config.py. */
 export const BEHIND_S = 4;
 export const BEHIND_CLEAR_S = 2;
 export const OVERLOADED_S = 10;

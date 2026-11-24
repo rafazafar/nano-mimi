@@ -3,7 +3,6 @@ import { h, setAttr, setHidden, setText } from "./dom";
 import { formatSeconds, formatTimestamp } from "./format";
 import { icon } from "./icons";
 
-/** What one row shows right now, derived from the reducer's row so the DOM code has no decisions left to make. */
 export interface RowView {
   readonly time: string;
   readonly ja: string;
@@ -63,7 +62,6 @@ export interface DraftView {
 
 export const draftView = (draft: Draft): DraftView => ({ time: formatTimestamp(draft.timelineS), ja: draft.ja, en: draft.previewEn });
 
-/** The label and value pairs of a row's expandable timing detail. */
 export function timingRows(timing: Timing, source: CaptionRow["source"]): readonly (readonly [string, string])[] {
   return [
     ["English from", source ?? "-"],
@@ -194,7 +192,6 @@ export class TranscriptView {
     this.sync(this.pinned ? this.entries.size : this.seenRows, this.entries.size);
   }
 
-  /** Shows the jump control while away from the live edge, with a count of rows that arrived since. */
   private sync(seen: number, total = this.entries.size): void {
     this.seenRows = seen;
     const away = !this.pinned && total > 0;
@@ -279,7 +276,6 @@ export class TranscriptView {
     setAttr(this.draft.ja, "data-provisional", "true");
   }
 
-  /** Tells screen readers about the newest settled English line, and only that: tokens would be noise. */
   private announceLatest(rows: readonly CaptionRow[]): void {
     for (let i = rows.length - 1; i >= 0; i--) {
       const row = rows[i]!;

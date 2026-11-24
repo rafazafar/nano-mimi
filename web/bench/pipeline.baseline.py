@@ -51,7 +51,9 @@ def main() -> None:
     ap.add_argument("wav", type=Path)
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--replay-vad", action="store_true", help="keep the 700 ms replay silence close")
+    ap.add_argument(
+        "--replay-vad", action="store_true", help="keep the 700 ms replay silence close"
+    )
     args = ap.parse_args()
 
     apply_settings_for_session(default_settings())

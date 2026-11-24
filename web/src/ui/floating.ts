@@ -8,7 +8,6 @@ export interface PipLine {
   readonly text: string;
 }
 
-/** What the floating window shows: the last few settled English lines and the one line still in flux. */
 export interface PipModel {
   /** Oldest first; the last is the newest and gets the emphasis. */
   readonly settled: readonly PipLine[];
@@ -46,7 +45,6 @@ function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, classN
   return node;
 }
 
-/** The floating window's DOM, built in its own document and patched from a `PipModel`. */
 export class PipView {
   readonly el: HTMLElement;
   private readonly health: HTMLElement;
@@ -127,7 +125,6 @@ export interface FloatingDeps {
   readonly opener: Document;
   /** The live caption state; read on every render so the window never holds a copy that can go stale. */
   readonly captions: () => CaptionState;
-  /** The button needs repainting: the state changed. */
   readonly changed: () => void;
 }
 

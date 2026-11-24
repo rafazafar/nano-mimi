@@ -39,11 +39,6 @@ export interface AppHandle {
 
 const TICK_MS = 500;
 
-/**
- * Mounts the app into `root`. The controller is a thin shell around three pieces of state that change at
- * different rates: the lifecycle (`reduceApp`), the captions (`reduceCaptions`) and the download's per-file
- * bytes. It owns the handles that cannot live in state (store, engines, session) and every side effect.
- */
 export function mountApp(root: HTMLElement, deps: AppDeps): AppHandle {
   return new App(root, deps);
 }
@@ -154,8 +149,6 @@ class App implements AppHandle {
     if (kind === "loading-engines" || kind === "running" || kind === "stopping") this.frame.schedule();
   }
 
-  // Boot and setup ---------------------------------------------------------------------------------------
-
   private async boot(): Promise<void> {
     const { deps } = this;
     void deps.probeGpu().then(
@@ -182,7 +175,6 @@ class App implements AppHandle {
     }
   }
 
-  /** Builds the store for `backend`, reads what is on disk and returns the resulting setup; null if superseded. */
   private async inspect(backend: AsrBackend, auto: AsrBackend, endpoint: EndpointChoice, issues: Setup["issues"]): Promise<Setup | null> {
     const token = ++this.inspectSeq;
     const manifest = buildManifest(backend, endpoint);
@@ -294,8 +286,6 @@ class App implements AppHandle {
     else if (this.appState.kind === "loading-engines") void this.loadEngines();
   }
 
-  // Source and session ----------------------------------------------------------------------------------
-
   private chooseSource(kind: SourceKind): void {
     this.dispatch({ type: "source-chosen", source: kind === "file" ? { kind, pick: this.lastPick } : { kind } });
   }
@@ -354,7 +344,6 @@ class App implements AppHandle {
     }
   }
 
-  /** The session is over, by Stop or because a replayed file finished. Clears the "behind" chip it may have left. */
   private endSession(session: Session, error: string | null): void {
     if (this.session !== session) return;
     this.session = null;
@@ -367,8 +356,6 @@ class App implements AppHandle {
     this.frame.schedule();
     this.floating.refresh();
   }
-
-  // Floating captions, theme, drag and drop -----------------------------------------------------------------
 
   private toggleFloating(): void {
     if (this.floating.state.kind === "open") this.floating.close();
@@ -412,8 +399,6 @@ class App implements AppHandle {
       if (canDrop() && file !== undefined) void this.pickFile(file);
     });
   }
-
-  // Painting -----------------------------------------------------------------------------------------------
 
   private paint(): void {
     if (this.disposed) return;
@@ -461,7 +446,6 @@ class App implements AppHandle {
 
 const EMPTY_PROGRESS: DownloadProgress = { totalBytes: 0, doneBytes: 0, fraction: 0, models: [], failures: [] };
 
-/** The setup a state carries, including the one an engine-load error can retry with. */
 function setupOf(state: AppState): Setup | null {
   if ("setup" in state) return state.setup;
   if (state.kind === "error" && state.retry.target === "load-engines") return state.retry.setup;

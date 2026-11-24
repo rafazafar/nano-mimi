@@ -21,7 +21,6 @@ export interface EngineInfo {
   readonly totalLoadMs: number;
 }
 
-/** The three models, loaded and ready: the VAD scorer, the ASR worker and the MT worker. */
 export interface Engines {
   readonly asr: AsrEngine;
   readonly mt: MtEngine;
@@ -31,7 +30,6 @@ export interface Engines {
   dispose(): void;
 }
 
-/** wasm EP threads for the ASR worker: all but two cores, capped at 8, and one without cross-origin isolation. */
 export function asrThreads(): number {
   if (!crossOriginIsolated) return 1;
   return Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 2));
@@ -67,7 +65,6 @@ export async function loadEngines(
   }
   return {
     asr: {
-      // Haas-ja decodes a clip in one shot: there are no partial segments to report.
       transcribe: (samples) => asr.transcribe(samples),
     },
     mt,

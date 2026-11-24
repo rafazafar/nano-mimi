@@ -3,8 +3,7 @@ import { SAMPLE_RATE } from "../audio/vadStateMachine";
 import { decodeWavTo16k } from "../audio/wav";
 import type { SourceSpec } from "./session";
 
-/** Audio the capture worklet is still delivering when a file's last sample has played. */
-const FILE_TAIL_MS = 300;
+const CAPTURE_DRAIN_MS = 300;
 
 /** Something that delivers 16 kHz mono blocks until it ends or is stopped. */
 export interface AudioSource {
@@ -65,10 +64,6 @@ function streamSource(stream: MediaStream, label: string, deviceLostMessage: str
   };
 }
 
-/**
- * A WAV replayed at 1x through the same capture worklet as the live sources, silently: the audio graph
- * feeds a stream destination and nothing is connected to the speakers.
- */
 function fileSource(name: string, bytes: Uint8Array): AudioSource {
   const samples = decodeWavTo16k(bytes);
   const ended = signal();
@@ -89,7 +84,7 @@ function fileSource(name: string, bytes: Uint8Array): AudioSource {
         player.buffer = buffer;
         player.connect(destination);
         player.onended = () => {
-          tail = setTimeout(ended.resolve, FILE_TAIL_MS);
+          tail = setTimeout(ended.resolve, CAPTURE_DRAIN_MS);
         };
         capture = await startCapture(destination.stream, onSamples);
         await ctx.resume();

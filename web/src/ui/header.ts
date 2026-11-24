@@ -9,7 +9,6 @@ export interface HeaderModel {
   readonly status: { readonly tone: StatusTone; readonly label: string };
   readonly health: Health;
   readonly backlogS: number;
-  /** The theme the page shows now, so the button offers the other one. */
   readonly theme: Theme;
 }
 
@@ -23,7 +22,6 @@ function brandMark(): SVGSVGElement {
   return svg;
 }
 
-/** The bar across the top: who we are, where the app is, whether captions are keeping up, and the theme. */
 export class HeaderView {
   readonly el: HTMLElement;
   private readonly status: HTMLElement;

@@ -21,7 +21,6 @@ export type PickResult =
   | { readonly ok: false; readonly message: string };
 
 export const MAX_WAV_BYTES = 1024 * 1024 * 1024;
-/** Enough to hold any real WAV header and its metadata chunks; the whole file is decoded later by the session. */
 const HEADER_BYTES = 1024 * 1024;
 
 export function toSourceSpec(choice: SourceChoice): SourceSpec | null {
@@ -31,10 +30,6 @@ export function toSourceSpec(choice: SourceChoice): SourceSpec | null {
 
 export const SOURCE_LABEL: Readonly<Record<SourceKind, string>> = { mic: "Microphone", tab: "Browser tab", file: "WAV file" };
 
-/**
- * Checks file bytes at the boundary. Format support stays with `decodeWav`, which reads the head here, so
- * the picker never accepts a file the session will refuse and never rejects one it would take.
- */
 export function parseWavPick(name: string, bytes: Uint8Array): PickResult {
   if (bytes.length === 0) return { ok: false, message: `${name} is empty.` };
   if (bytes.length > MAX_WAV_BYTES) return tooLarge(name);
@@ -48,7 +43,6 @@ export function parseWavPick(name: string, bytes: Uint8Array): PickResult {
   }
 }
 
-/** Reads the file only when it is small enough to hold in memory. */
 export async function readWavPick(file: File): Promise<PickResult> {
   if (file.size > MAX_WAV_BYTES) return tooLarge(file.name);
   return parseWavPick(file.name, new Uint8Array(await file.arrayBuffer()));

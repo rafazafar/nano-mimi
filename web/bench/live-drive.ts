@@ -8,7 +8,7 @@
 // Each run presses Start, lets the file play to its end, presses Stop and reads the caption rows from the page.
 // --source file picks the WAV in the app's own file picker instead and lets the replay end the session by itself.
 // --screens takes screenshots of the live view and the Document Picture-in-Picture window into web/.bench/screens/.
-// --memory samples the Chrome GPU process footprint every 3 s, the way S0a did (the sampling slows decode, so do not time that run).
+// --memory samples the Chrome GPU process footprint every 3 s (the sampling slows decode, so do not time that run).
 // Writes web/.bench/results/<name>.json; compare it to the Python pipeline with `uv run python web/bench/live_compare.py`.
 // Exits non-zero unless the page was crossOriginIsolated and the adapter was a real (non-fallback) one.
 import { execFileSync } from "node:child_process";
@@ -43,7 +43,6 @@ const RESULTS = join(WEB, ".bench", "results");
 mkdirSync(SCREENS, { recursive: true });
 mkdirSync(RESULTS, { recursive: true });
 
-/** Seconds of audio in a PCM WAV, from its fmt and data chunks. */
 function wavSeconds(path: string): number {
   const b = readFileSync(path);
   let at = 12;
@@ -72,15 +71,17 @@ const vite = await createViteServer({
 await vite.listen();
 const appOrigin = vite.resolvedUrls!.local[0]!.replace(/\/$/, "");
 
-// The CAT repo is not published: link the local export where the manifest expects it on the endpoint.
-const { CAT_MODEL } = (await vite.ssrLoadModule("/src/models/manifest.ts")) as { CAT_MODEL: { repo: string; revision: string } };
-const catSource = process.env["MIMIVOX_CAT_DIR"] ?? join(homedir(), ".cache/mimivox/web-models/cat-ogb-q4");
-const catLink = join(WEB, ".models", CAT_MODEL.repo, "resolve", CAT_MODEL.revision);
-if (!existsSync(catLink)) {
-  if (!existsSync(catSource)) throw new Error(`CAT export not found at ${catSource} (set MIMIVOX_CAT_DIR)`);
-  mkdirSync(dirname(catLink), { recursive: true });
-  symlinkSync(catSource, catLink, "dir");
+/** The CAT export is not published: link the local one where the manifest expects it on the endpoint. */
+function linkLocalCatExport(cat: { repo: string; revision: string }): void {
+  const source = process.env["MIMIVOX_CAT_DIR"] ?? join(homedir(), ".cache/mimivox/web-models/cat-ogb-q4");
+  const link = join(WEB, ".models", cat.repo, "resolve", cat.revision);
+  if (existsSync(link)) return;
+  if (!existsSync(source)) throw new Error(`CAT export not found at ${source} (set MIMIVOX_CAT_DIR)`);
+  mkdirSync(dirname(link), { recursive: true });
+  symlinkSync(source, link, "dir");
 }
+const { CAT_MODEL } = (await vite.ssrLoadModule("/src/models/manifest.ts")) as { CAT_MODEL: { repo: string; revision: string } };
+linkLocalCatExport(CAT_MODEL);
 
 const profile = join(WEB, ".bench", "chrome-profile");
 const context = await chromium.launchPersistentContext(profile, {
@@ -114,7 +115,6 @@ async function waitForStatus(page: Page, wanted: readonly string[], timeoutMs: n
   }
 }
 
-/** `footprint` of the GPU helper that belongs to this run's Chrome, in MB. */
 function gpuFootprintMb(): number | null {
   const ps = execFileSync("ps", ["-axo", "pid=,command="], { encoding: "utf8" });
   const line = ps.split("\n").find((l) => l.includes("--type=gpu-process") && l.includes(profile));
