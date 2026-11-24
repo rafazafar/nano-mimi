@@ -99,7 +99,7 @@ const bench = {
   async start() {
     client?.terminate();
     const t0 = performance.now();
-    client = await MtClient.start(manifest, CAT_MODEL.id);
+    client = await MtClient.start(manifest, CAT_MODEL.id, "ja-en");
     log(`worker ready: ${JSON.stringify(client.load)}`);
     return { ...client.load, wallMs: performance.now() - t0 };
   },

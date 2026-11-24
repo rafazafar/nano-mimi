@@ -31,16 +31,29 @@ export function promptAndTokens(ja: JaText): PromptChoice {
   return { prompt: fill(LONG_PHRASE_PROMPT, ja), maxTokens: Math.max(80, length + 16) };
 }
 
+/** CAT's official English-to-Japanese prompt. */
+export const EN_JA_PROMPT = "Translate the following English text into Japanese.\n\n{ja}";
+
+/**
+ * English source: one prompt for every length. In a spike CAT averaged about 23 tokens per FLEURS sentence
+ * (130 characters), so half a token per character plus 24 leaves headroom without letting a loop run long.
+ */
+export function enJaPromptAndTokens(src: JaText): PromptChoice {
+  const length = cpLength(pyStrip(src));
+  return { prompt: fill(EN_JA_PROMPT, src), maxTokens: Math.min(192, Math.max(32, Math.ceil(length * 0.5) + 24)) };
+}
+
 /** CAT chat turns: each prior line as a user/assistant pair, then the current line. */
 export function chatMessages(
   ja: JaText,
   context: readonly ContextTurn[],
+  promptFor: (source: JaText) => PromptChoice = promptAndTokens,
 ): { messages: ChatMessage[]; maxTokens: number } {
   const messages: ChatMessage[] = context.flatMap((turn) => [
-    { role: "user" as const, content: promptAndTokens(turn.ja).prompt },
+    { role: "user" as const, content: promptFor(turn.ja).prompt },
     { role: "assistant" as const, content: turn.en },
   ]);
-  const { prompt, maxTokens } = promptAndTokens(ja);
+  const { prompt, maxTokens } = promptFor(ja);
   messages.push({ role: "user", content: prompt });
   return { messages, maxTokens };
 }

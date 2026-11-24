@@ -1,4 +1,5 @@
 import type { ContextTurn, EnText } from "../core/types";
+import type { PairId } from "../core/pair";
 import type { Manifest } from "../models/types";
 
 /** Why a generation ran: the first pass, or one of `_do_translate_streaming`'s retries. */
@@ -51,7 +52,7 @@ export interface LoadInfo {
 
 /** Page -> worker. */
 export type MtRequest =
-  | { readonly type: "init"; readonly manifest: Manifest; readonly modelId: string }
+  | { readonly type: "init"; readonly manifest: Manifest; readonly modelId: string; readonly pair: PairId }
   | {
       readonly type: "translate";
       readonly id: number;

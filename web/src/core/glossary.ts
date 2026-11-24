@@ -30,3 +30,25 @@ export function termSources(glossary: Glossary): string[] {
     .filter(([source, target]) => source !== "" && target !== "" && !isAsrFix(target))
     .map(([source]) => source);
 }
+
+const WORD_CHAR = String.raw`\p{L}\p{N}_`;
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
+/**
+ * English source: substitute each term (English source, Japanese target) wherever it appears as whole words,
+ * ignoring case, longest first. Entries with a Japanese source are ASR fixes for Japanese speech and never match.
+ */
+export function applyEnglishGlossary(text: JaText, glossary: Glossary): JaText {
+  const sources = [...glossary.keys()]
+    .filter((source) => source.trim() !== "" && !hasJapanese(source))
+    .sort((a, b) => cpLength(b) - cpLength(a));
+  let result: string = text;
+  for (const source of sources) {
+    const term = new RegExp(`(?<![${WORD_CHAR}])${escapeRegExp(source.trim())}(?![${WORD_CHAR}])`, "giu");
+    result = result.replace(term, () => glossary.get(source) ?? "");
+  }
+  return asJaText(result);
+}
