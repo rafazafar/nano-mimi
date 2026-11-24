@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { ContextTurn } from "../core/types";
+import { asEnText, asJaText } from "../core/types";
 
 const FIXTURE_ROOT = fileURLToPath(new URL("../../fixtures/", import.meta.url));
 
@@ -42,4 +44,21 @@ export function fixtureCases<I, O>(family: string, fn: string): readonly Fixture
     throw new Error(`${relPath}: no cases recorded for ${fn}`);
   }
   return cases as readonly FixtureCase<I, O>[];
+}
+
+/** Recorded `[ja, en]` pairs as the ports' `ContextTurn`s. */
+export function contextTurns(pairs: readonly (readonly [string, string])[]): ContextTurn[] {
+  return pairs.map(([ja, en]) => ({ ja: asJaText(ja), en: asEnText(en) }));
+}
+
+const NAME_MAX = 80;
+
+/** `[name, case]` rows for `it.each`, named by the recorded input. */
+export function named<I, O>(
+  cases: readonly FixtureCase<I, O>[],
+): (readonly [string, FixtureCase<I, O>])[] {
+  return cases.map((c) => {
+    const name = JSON.stringify(c.input) ?? "undefined";
+    return [name.length > NAME_MAX ? `${name.slice(0, NAME_MAX)}...` : name, c] as const;
+  });
 }

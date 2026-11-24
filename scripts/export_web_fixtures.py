@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import web_fixture_corpus as corpus  # noqa: E402
 
 import mimivox.config as config  # noqa: E402
-from mimivox import asr, number_check, revision, translate  # noqa: E402
+from mimivox import asr, glossary, number_check, revision, translate  # noqa: E402
 from mimivox.config import CAT_MODEL_ID, CONTEXT_TURNS, SAMPLE_RATE, _models  # noqa: E402
 from mimivox.vad import _WIN, SileroOnnx, SileroVAD  # noqa: E402
 
@@ -88,6 +88,42 @@ def ctx(pairs: list[Any]) -> list[tuple[str, str]]:
     return [(ja, en) for ja, en in pairs]
 
 
+def run_cache_ops(ops: list[dict[str, Any]]) -> dict[str, Any]:
+    """Drive the real translation cache the way pipeline.py's display and preview paths do."""
+    cache = config._TRANSLATION_CACHE
+    config.reset_translation_cache()
+    results: list[Any] = []
+    for op in ops:
+        if op["op"] == "reset":
+            config.reset_translation_cache()
+        elif op["op"] == "get":
+            ja = op["ja"]
+            key = translate.translation_cache_key(ja)
+            hit = cache.get(key)
+            if hit is None:
+                hit = cache.get(ja)
+            if hit is not None:
+                cache.move_to_end(key if key in cache else ja)
+            results.append(hit)
+        elif op["op"] == "preview":
+            key = translate.translation_cache_key(op["ja"])
+            cache[key] = op["en"]
+            cache.move_to_end(key)
+            if len(cache) > config._TRANSLATION_CACHE_MAX:
+                cache.popitem(last=False)
+        else:
+            ja = op["ja"]
+            key = translate.translation_cache_key(ja)
+            cache[key] = op["en"]
+            if ja != key:
+                cache[ja] = op["en"]
+            while len(cache) > config._TRANSLATION_CACHE_MAX:
+                cache.popitem(last=False)
+    entries = [[k, v] for k, v in cache.items()]
+    config.reset_translation_cache()
+    return {"gets": results, "entries": entries}
+
+
 def cat_tokenizer() -> tuple[Any, str]:
     from huggingface_hub import snapshot_download
     from mlx_lm.tokenizer_utils import load as load_tokenizer
@@ -114,7 +150,11 @@ def export_core() -> None:
             "apply_glossary": cases(
                 corpus.APPLY_GLOSSARY,
                 lambda c: translate.apply_glossary(c["text"], dict(c["glossary"])),
-            )
+            ),
+            "is_asr_fix": cases(corpus.IS_ASR_FIX, glossary.is_asr_fix),
+            "term_sources": cases(
+                corpus.TERM_SOURCES, lambda pairs: glossary.term_sources(dict(pairs))
+            ),
         },
     )
     family(
@@ -125,6 +165,15 @@ def export_core() -> None:
                 [{"prev": p, "next": n, "gap_s": g} for p, n, g in corpus.IS_SPLIT_CONTINUATION],
                 lambda c: revision.is_split_continuation(c["prev"], c["next"], c["gap_s"]),
             ),
+            "limits": [
+                {
+                    "input": None,
+                    "output": {
+                        "max_gap_s": config.REVISION_MAX_GAP_S,
+                        "max_joined_chars": config.REVISION_MAX_JOINED_CHARS,
+                    },
+                }
+            ],
         },
     )
     family(
@@ -154,6 +203,10 @@ def export_core() -> None:
                 [{"en": en, "ja": ja} for en, ja in corpus.TOO_SHORT],
                 lambda c: translate._too_short(c["en"], c["ja"]),
             ),
+            "labelled": cases(
+                corpus.LABELLED, lambda raw: translate._LABELLED_RE.match(raw) is not None
+            ),
+            "prompt_leak_markers": [{"input": None, "output": config._PROMPT_LEAK_MARKERS}],
         },
     )
 
@@ -178,6 +231,16 @@ def export_core() -> None:
                 lambda ja: dict(zip(("prompt", "max_tokens"), translate._prompt_and_tokens(ja))),
             ),
             "chat_messages": cases(corpus.CHAT_MESSAGES, render_chat),
+            "templates": [
+                {
+                    "input": None,
+                    "output": {
+                        "ultra_short": config._ULTRA_SHORT_PROMPT,
+                        "short_phrase": config._SHORT_PHRASE_PROMPT,
+                        "long_phrase": config._LONG_PHRASE_PROMPT,
+                    },
+                }
+            ],
         },
     )
     family(
@@ -201,6 +264,11 @@ def export_core() -> None:
                 ),
             ),
             "seeds": [{"input": k, "output": v} for k, v in sorted(seeds.items())],
+            "max_entries": [{"input": None, "output": config._TRANSLATION_CACHE_MAX}],
+            "scenario": [
+                {"name": name, "input": ops, "output": run_cache_ops(ops)}
+                for name, ops in corpus.CACHE_SCENARIOS.items()
+            ],
         },
     )
 

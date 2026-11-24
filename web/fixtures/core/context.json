@@ -25,7 +25,12 @@
       {
         "input": [["This is English text", "This is English text"], ["ミーティング開始です。", "The meeting starts"]],
         "output": [["ミーティング開始です。", "The meeting starts"]]
-      }
+      },
+      {"input": [["😀😀😀😀😀😀", "emoji six"]], "output": [["😀😀😀😀😀😀", "emoji six"]]},
+      {"input": [["😀😀😀😀😀", "emoji five"]], "output": []},
+      {"input": [["\u001cあいうえおか", "controls"]], "output": [["\u001cあいうえおか", "controls"]]},
+      {"input": [["ＡＢＣ ＤＥＦ", "fullwidth latin"]], "output": []},
+      {"input": [["はい、OK", "yes"], ["ミーティング開始です。", "start"]], "output": [["ミーティング開始です。", "start"]]}
     ]
   }
 }

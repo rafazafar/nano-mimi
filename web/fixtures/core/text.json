@@ -24,7 +24,17 @@
       {"input": "これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。", "output": "これ。"},
       {"input": "そうですね、そうですね。次の議題です。", "output": "そうですね、そうですね。次の議題です。"},
       {"input": "x y x y x y x y x y x y x y x y z", "output": "x y z"},
-      {"input": "同じ 同じ 同じ 同じ 違う 同じ 同じ 同じ 同じ 同じ", "output": "同じ 違う 同じ 同じ"}
+      {"input": "同じ 同じ 同じ 同じ 違う 同じ 同じ 同じ 同じ 同じ", "output": "同じ 違う 同じ 同じ"},
+      {"input": "😀😀😀😀😀😀😀😀😀😀", "output": "😀😀"},
+      {"input": "はい。\rはい。\rはい。\rはい。\rはい。\rはい。\r", "output": "はい。\r"},
+      {"input": "あ\nいあ\nいあ\nいあ\nいあ\nいあ\nいあ\nいあ\nい", "output": "あ\nいあ\nい"},
+      {"input": "ab, ab, ab, ab, ab, ab, ", "output": "ab, "},
+      {"input": "あ　あ　あ　あ　あ　あ　あ　あ　あ　あ　あ　あ　終", "output": "あ　終"},
+      {
+        "input": "A B C D E F G H I J K L M N O P Q R S T",
+        "output": "A B C D E F G H I J K L M N O P Q R S T"
+      },
+      {"input": "x y x y x y x y x y x y x y x y z w", "output": "x y z w"}
     ],
     "is_mostly_english": [
       {"input": "This is English text", "output": true},
@@ -44,7 +54,14 @@
       {
         "input": "日本語 English English English English English English English English English",
         "output": false
-      }
+      },
+      {"input": "ＡＢＣ ＤＥＦ", "output": true},
+      {"input": "é à ü", "output": true},
+      {"input": "١٢٣ abc", "output": true},
+      {"input": "\u001cOK", "output": true},
+      {"input": "日本 日本語 hello world", "output": false},
+      {"input": "Ωmega", "output": true},
+      {"input": "ǅ", "output": true}
     ],
     "is_non_content_asr": [
       {"input": "", "output": true},
@@ -66,7 +83,12 @@
       {"input": "1", "output": false},
       {"input": "。。。。。", "output": true},
       {"input": "ー", "output": false},
-      {"input": "、はい", "output": false}
+      {"input": "、はい", "output": false},
+      {"input": "\u001c。", "output": true},
+      {"input": "。﻿", "output": false},
+      {"input": "。😀", "output": false},
+      {"input": "。 、", "output": true},
+      {"input": " 。", "output": true}
     ],
     "normalize_punctuation": [
       {"input": "こんにちは", "output": "こんにちは。"},
@@ -84,7 +106,12 @@
       {"input": "終わりです.", "output": "終わりです."},
       {"input": "a", "output": "a。"},
       {"input": "「はい」", "output": "「はい」。"},
-      {"input": "はい\n", "output": "はい。"}
+      {"input": "はい\n", "output": "はい。"},
+      {"input": "\u001cはい", "output": "はい。"},
+      {"input": "﻿はい", "output": "﻿はい。"},
+      {"input": " はい ", "output": "はい。"},
+      {"input": "はい😀", "output": "はい😀。"},
+      {"input": "はい\u000b", "output": "はい。"}
     ]
   }
 }

@@ -55,7 +55,38 @@
       {
         "input": {"glossary": [["見積", "quote"], ["見積もり", "estimate"]], "text": "見積もり、見積"},
         "output": "estimate、quote"
-      }
+      },
+      {"input": {"glossary": [["", "X"]], "text": "abc"}, "output": "XaXbXcX"},
+      {"input": {"glossary": [["部長", "$& $1 $$"]], "text": "部長です"}, "output": "$& $1 $$です"},
+      {"input": {"glossary": [["😀", "smile"]], "text": "😀と😀😀"}, "output": "smileとsmilesmile"},
+      {"input": {"glossary": [["A", "x"], ["A", "y"]], "text": "AB"}, "output": "yB"},
+      {"input": {"glossary": [["い", "x"], ["あ", "y"], ["う", "zz"]], "text": "あいう"}, "output": "yxzz"},
+      {"input": {"glossary": [["", "X"]], "text": ""}, "output": "X"},
+      {"input": {"glossary": [["", "X"]], "text": "😀"}, "output": "X😀X"}
+    ],
+    "is_asr_fix": [
+      {"input": "結構", "output": true},
+      {"input": "department head", "output": false},
+      {"input": "", "output": false},
+      {"input": "ｱｲｳ", "output": true},
+      {"input": "Café", "output": false},
+      {"input": "head 部", "output": true},
+      {"input": "。", "output": false},
+      {"input": "ー", "output": true},
+      {"input": "぀", "output": true},
+      {"input": "鿿", "output": true},
+      {"input": "䶿", "output": true}
+    ],
+    "term_sources": [
+      {"input": [], "output": []},
+      {"input": [["てっこうです", "結構です"], ["てっこう", "結構"]], "output": []},
+      {
+        "input": [["部長", "department head"], ["ミミボックス", "MimiVox"], ["よろしくお願いします", "I look forward to working with you"], ["てっこうだ", "結構だ"]],
+        "output": ["部長", "ミミボックス", "よろしくお願いします"]
+      },
+      {"input": [["部長", "department head"], ["", "x"], ["空", ""], ["てっこう", "結構"]], "output": ["部長"]},
+      {"input": [["A", "x"], ["B", ""], ["C", "z"]], "output": ["A", "C"]},
+      {"input": [["A", "x"], ["A", "y"], ["B", "z"], ["A", "結構"]], "output": ["B"]}
     ]
   }
 }

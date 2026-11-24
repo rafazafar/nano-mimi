@@ -28,7 +28,16 @@
       {"input": "これは何?", "output": false},
       {"input": "ええ。", "output": false},
       {"input": "行きますので。", "output": true},
-      {"input": "行きますが）", "output": true}
+      {"input": "行きますが）", "output": true},
+      {"input": "\u001c報告しましたが、", "output": true},
+      {"input": "😀😀😀😀😀", "output": true},
+      {"input": "😀😀😀😀", "output": false},
+      {"input": "が。", "output": true},
+      {"input": "。", "output": false},
+      {"input": "、", "output": true},
+      {"input": "。。", "output": false},
+      {"input": "報告しましたが ", "output": true},
+      {"input": "はい。」』）)\"'", "output": false}
     ],
     "is_split_continuation": [
       {"input": {"gap_s": 0.8, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": true},
@@ -72,7 +81,25 @@
       },
       {"input": {"gap_s": 0.0, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": true},
       {"input": {"gap_s": -0.2, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": true},
-      {"input": {"gap_s": 0.4, "next": " まだ返事がありません。 ", "prev": " 部長には報告しましたが、 "}, "output": true}
-    ]
+      {"input": {"gap_s": 0.4, "next": " まだ返事がありません。 ", "prev": " 部長には報告しましたが、 "}, "output": true},
+      {
+        "input": {
+          "gap_s": 0.5,
+          "next": "いいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいい。",
+          "prev": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀、"
+        },
+        "output": false
+      },
+      {
+        "input": {
+          "gap_s": 0.5,
+          "next": "いいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいい。",
+          "prev": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀、"
+        },
+        "output": false
+      },
+      {"input": {"gap_s": 0.5, "next": "\u001c", "prev": "部長には報告しましたが、"}, "output": false}
+    ],
+    "limits": [{"input": null, "output": {"max_gap_s": 1.5, "max_joined_chars": 120}}]
   }
 }

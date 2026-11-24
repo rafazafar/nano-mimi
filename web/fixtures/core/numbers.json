@@ -21,7 +21,14 @@
       {"input": "２０２４年", "output": "２０２４年"},
       {"input": "10000円、100000円、1000000円", "output": "10,000円、100,000円、1,000,000円"},
       {"input": ".1000", "output": ".1000"},
-      {"input": "1000.", "output": "1000."}
+      {"input": "1000.", "output": "1000."},
+      {"input": "１２３４５円", "output": "12,345円"},
+      {"input": "١٢٣٤٥", "output": "12,345"},
+      {"input": "12345　年", "output": "12345　年"},
+      {"input": "1234５", "output": "12,345"},
+      {"input": "7000年と7000", "output": "7000年と7,000"},
+      {"input": "😀12345😀", "output": "😀12,345😀"},
+      {"input": "99999999999999999999", "output": "99,999,999,999,999,999,999"}
     ],
     "unsupported_numbers": [
       {"input": {"en": "Japan has about 7,000 islands", "ja": "日本には約7000の島々があります。"}, "output": []},
@@ -67,7 +74,17 @@
       {"input": {"en": "1 million, 2 million", "ja": "百万です。"}, "output": ["2 million"]},
       {"input": {"en": "ABC123 is the code", "ja": "ABC123です。"}, "output": []},
       {"input": {"en": "v2.5 and 2.5", "ja": "2.5です。"}, "output": []},
-      {"input": {"en": "15 minutes and 15 hundred", "ja": "十五分です。"}, "output": []}
+      {"input": {"en": "15 minutes and 15 hundred", "ja": "十五分です。"}, "output": []},
+      {"input": {"en": "It costs 12,345 yen", "ja": "１２３４５円です"}, "output": []},
+      {"input": {"en": "It costs 3,000 yen", "ja": "٣千円"}, "output": []},
+      {"input": {"en": "It costs $70,000", "ja": "約7000です"}, "output": ["70,000"]},
+      {"input": {"en": "About x70,000 or 7.000", "ja": "約7000です"}, "output": ["000", "7.000"]},
+      {"input": {"en": "About ٧٠٠٠", "ja": "約7000です"}, "output": []},
+      {"input": {"en": "7 thousand and 7 Thousand", "ja": "7000"}, "output": []},
+      {"input": {"en": "20% off, 2 off", "ja": "二割引"}, "output": []},
+      {"input": {"en": "1 2 3", "ja": ""}, "output": ["1", "2", "3"]},
+      {"input": {"en": "3,500,000 or 3.5 million", "ja": "三百五十万"}, "output": []},
+      {"input": {"en": "twenty 20", "ja": "2割"}, "output": []}
     ]
   }
 }

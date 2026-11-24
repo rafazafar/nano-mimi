@@ -24,6 +24,11 @@ NORMALIZE_PUNCTUATION = [
     "a",
     "「はい」",
     "はい\n",
+    "\x1cはい\x85",
+    "\ufeffはい",
+    "\u00a0はい\u2003",
+    "はい😀",
+    "はい\x0b",
 ]
 
 IS_NON_CONTENT_ASR = [
@@ -47,6 +52,11 @@ IS_NON_CONTENT_ASR = [
     "。。。。。",
     "ー",
     "、はい",
+    "\x1c。\x85",
+    "。\ufeff",
+    "。😀",
+    "。\u00a0、",
+    "\u2028。",
 ]
 
 DEDUPLICATE_PHRASES = [
@@ -67,6 +77,13 @@ DEDUPLICATE_PHRASES = [
     "そうですね、そうですね。次の議題です。",
     "x y x y x y x y x y x y x y x y z",
     "同じ 同じ 同じ 同じ 違う 同じ 同じ 同じ 同じ 同じ",
+    "😀" * 10,
+    "はい。\r" * 6,
+    "あ\nい" * 8,
+    "ab, " * 6,
+    "あ\u3000" * 12 + "終",
+    "A B C D E F G H I J K L M N O P Q R S T",
+    "x y x y x y x y x y x y x y x y z\u2003w",
 ]
 
 IS_MOSTLY_ENGLISH = [
@@ -85,6 +102,13 @@ IS_MOSTLY_ENGLISH = [
     "Hello! こんにちは world and more english text here",
     "。。。",
     "日本語 English English English English English English English English English",
+    "ＡＢＣ ＤＥＦ",
+    "é à ü",
+    "١٢٣ abc",
+    "\x1cOK\x85",
+    "日本 日本語 hello world",
+    "Ωmega",
+    "ǅ",
 ]
 
 # (source, target) pairs in glossary order; Python builds dict(pairs).
@@ -120,6 +144,13 @@ APPLY_GLOSSARY = [
     {"text": "a.b", "glossary": [(".", "!"), ("a.b", "ab")]},
     {"text": "ABC", "glossary": [("ab", "x"), ("AB", "y")]},
     {"text": "見積もり、見積", "glossary": [("見積", "quote"), ("見積もり", "estimate")]},
+    {"text": "abc", "glossary": [("", "X")]},
+    {"text": "部長です", "glossary": [("部長", "$& $1 $$")]},
+    {"text": "😀と😀😀", "glossary": [("😀", "smile")]},
+    {"text": "AB", "glossary": [("A", "x"), ("A", "y")]},
+    {"text": "あいう", "glossary": [("い", "x"), ("あ", "y"), ("う", "zz")]},
+    {"text": "", "glossary": [("", "X")]},
+    {"text": "😀", "glossary": [("", "X")]},
 ]
 
 ENDS_MID_SENTENCE = [
@@ -150,6 +181,15 @@ ENDS_MID_SENTENCE = [
     "ええ。",
     "行きますので。",
     "行きますが）",
+    "\x1c報告しましたが、\x85",
+    "😀😀😀😀😀",
+    "😀😀😀😀",
+    "が。",
+    "。",
+    "、",
+    "。。",
+    "報告しましたが\u2003",
+    "はい。」』）)\"'",
 ]
 
 IS_SPLIT_CONTINUATION = [
@@ -174,6 +214,9 @@ IS_SPLIT_CONTINUATION = [
     ("部長には報告しましたが、", "まだ返事がありません。", 0.0),
     ("部長には報告しましたが、", "まだ返事がありません。", -0.2),
     (" 部長には報告しましたが、 ", " まだ返事がありません。 ", 0.4),
+    ("😀" * 60 + "、", "い" * 60 + "。", 0.5),
+    ("😀" * 61 + "、", "い" * 60 + "。", 0.5),
+    ("部長には報告しましたが、", "\x1c\x85", 0.5),
 ]
 
 UNSUPPORTED_NUMBERS = [
@@ -212,6 +255,16 @@ UNSUPPORTED_NUMBERS = [
     ("ABC123です。", "ABC123 is the code"),
     ("2.5です。", "v2.5 and 2.5"),
     ("十五分です。", "15 minutes and 15 hundred"),
+    ("１２３４５円です", "It costs 12,345 yen"),
+    ("٣千円", "It costs 3,000 yen"),
+    ("約7000です", "It costs $70,000"),
+    ("約7000です", "About x70,000 or 7.000"),
+    ("約7000です", "About ٧٠٠٠"),
+    ("7000", "7 thousand and 7 Thousand"),
+    ("二割引", "20% off, 2 off"),
+    ("", "1 2 3"),
+    ("三百五十万", "3,500,000 or 3.5 million"),
+    ("2割", "twenty 20"),
 ]
 
 GROUP_DIGITS = [
@@ -235,6 +288,13 @@ GROUP_DIGITS = [
     "10000円、100000円、1000000円",
     ".1000",
     "1000.",
+    "１２３４５円",
+    "١٢٣٤٥",
+    "12345\u3000年",
+    "1234５",
+    "7000年と7000",
+    "😀12345😀",
+    "99999999999999999999",
 ]
 
 CLEAN_CAT = [
@@ -273,6 +333,19 @@ CLEAN_CAT = [
     "Go. in Japanese it means go",
     "End.   ",
     "Trailing English:   ",
+    "Hello\rworld\x85again",
+    "İ Please translate this",
+    "Ok\u2028fine\u2029good",
+    "\x1cHello\x1d",
+    "Hi 😀 there. Translate the following",
+    "😀 Okay. English:",
+    "Okay.\n",
+    "...",
+    "Yes. 😀😀😀 No.",
+    "English:",
+    "x" * 3 + "?" + "Translate",
+    "Hello there English:\n",
+    "ǅ Please translate x",
 ]
 
 # (en, context pairs, ja_text)
@@ -339,6 +412,13 @@ ECHOES_CONTEXT = [
     ("A b c.", [("x", "a b c d e")], ""),
     ("It's fine today ok", [("x", "it's fine today")], ""),
     ("Okay.", [("はい。", "Okay."), ("そう。", "Right.")], "どうも。"),
+    ("Okay. Right.", [("はい。", "Okay."), ("そう。", "Right.")], "はい。"),
+    ("Okay.", [("はい。\u3000 そう", "Okay.")], "はい　。"),
+    ("Okay.", [("はい。", "Okay.")], "はい！"),
+    ("", [("はい。", "Okay.")], ""),
+    ("OK.", [("はい。", "ok!")], "どうも"),
+    ("Don\u2019t go there now", [("x", "don\u2019t go there now")], ""),
+    ("Go! Go! Go!", [("x", "Go!")], "あ"),
 ]
 
 # (en, ja)
@@ -366,6 +446,9 @@ TOO_SHORT = [
     ("日本語 only", "はい。"),
     ("a1 b2 c3", "あ" * 18),
     ("a1 b2 c3", "あ" * 19),
+    ("😀", "あ" * 6),
+    ("a" * 3, "あ😀" * 3),
+    ("café ok", "あ" * 13),
 ]
 
 PROMPT_AND_TOKENS = [
@@ -391,6 +474,15 @@ PROMPT_AND_TOKENS = [
     "a\nb",
     "  " + "あ" * 5 + "  ",
     "  " + "あ" * 62 + "  ",
+    "😀" * 5,
+    "😀" * 6,
+    "😀" * 25,
+    "😀" * 26,
+    "😀" * 60,
+    "😀" * 61,
+    "😀" * 100,
+    "\x1cあ\x85",
+    "\ufeffはい",
 ]
 
 # Prior (JA, EN) lines used to render the context-turn layout.
@@ -405,6 +497,8 @@ CHAT_MESSAGES = [
     {"ja": "部長には報告しましたが、まだ返事がありません。", "context": CONTEXT_PAIRS},
     {"ja": "あ" * 70, "context": CONTEXT_PAIRS[:2]},
     {"ja": "はい", "context": [("あ" * 30, "x"), ("あ" * 4, "y")]},
+    {"ja": "😀" * 70, "context": CONTEXT_PAIRS[:1]},
+    {"ja": "{ja}", "context": [("{ja}", "{x}")]},
 ]
 
 # Sequences of TranslationContext.add(ja, en); CONTEXT_TURNS is 3.
@@ -429,6 +523,11 @@ CONTEXT_ADDS = [
         ("This is English text", "This is English text"),
         ("ミーティング開始です。", "The meeting starts"),
     ],
+    [("😀😀😀😀😀😀", "emoji six")],
+    [("😀😀😀😀😀", "emoji five")],
+    [("\x1cあいうえおか\x85", "controls")],
+    [("ＡＢＣ ＤＥＦ", "fullwidth latin")],
+    [("はい、OK", "yes"), ("ミーティング開始です。", "start")],
 ]
 
 CACHE_KEY = [
@@ -449,6 +548,11 @@ CACHE_KEY = [
     "a b c",
     "はい。",
     " はい。 ",
+    "a\ufeff b",
+    "a\u2028b\u2029c",
+    "\x0b\x0cx",
+    "😀 😀",
+    "a\u200ab\u202fc\u205fd\u1680e",
 ]
 
 # Input to translation_cache_key(apply_glossary(normalize_punctuation(ja))), as the pipeline does.
@@ -490,4 +594,121 @@ JAPANESE_TOKEN_VOCABS = [
     },
     {"x<0xE3>": 3, "<0xe3>": 4, "<0xE3>x": 5, "▁": 6, "": 7, "ab部": 8},
     {},
+    {
+        "\uff65": 0,
+        "\uff9f": 1,
+        "\uffa0": 2,
+        "\u303f": 3,
+        "\u3040": 4,
+        "\u9fff": 5,
+        "\ua000": 6,
+        "\uffef": 7,
+        "\ufff0": 8,
+        "\u2fff": 9,
+    },
+    {"<0xE4>": 0, "<0xE0>": 1, "<0xE1>": 2, "<0xEA>": 3, "<0xEE>": 4, "<0xEF>": 5, "<0xF0>": 6},
 ]
+
+# Strings for glossary.is_asr_fix and glossary.term_sources (a map is dict(pairs)).
+IS_ASR_FIX = [
+    "結構",
+    "department head",
+    "",
+    "ｱｲｳ",
+    "Café",
+    "head 部",
+    "。",
+    "ー",
+    "\u3040",
+    "\u9fff",
+    "\u4dbf",
+]
+TERM_SOURCES = [
+    [],
+    GLOSSARY_BASE,
+    GLOSSARY_ACME,
+    [("部長", "department head"), ("", "x"), ("空", ""), ("てっこう", "結構")],
+    [("A", "x"), ("B", ""), ("C", "z")],
+    [("A", "x"), ("A", "y"), ("B", "z"), ("A", "結構")],
+]
+
+# Raw CAT output for the "labelled reply" retry check (translate._LABELLED_RE.match).
+LABELLED = [
+    "Translation: Okay",
+    "  translation : Okay",
+    "English translation: Okay",
+    "ENGLISH TRANSLATION:Okay",
+    "Okay. Translation: yes",
+    "The translation: yes",
+    "Translation Okay",
+    "\n\ttranslation:",
+    "english  translation:",
+    "\x1ctranslation:",
+    "\ufefftranslation:",
+    "",
+    "\u017ftranslation:",
+    "TRANSLATION\u212a:",
+]
+
+# Operations on the translation LRU, run against config._TRANSLATION_CACHE as
+# pipeline.py does. "ja" is the glossary-substituted, punctuation-normalized JA.
+CACHE_SCENARIOS = {
+    "seeded": [
+        {"op": "get", "ja": "はい。"},
+        {"op": "get", "ja": "はい。 "},
+        {"op": "get", "ja": "はい"},
+        {"op": "get", "ja": "では始めさせていただきます。"},
+        {"op": "get", "ja": "ほのかは。"},
+    ],
+    "preview_then_final_hit": [
+        {"op": "preview", "ja": "部長には 報告しました。", "en": "I reported to the manager."},
+        {"op": "get", "ja": "部長には報告しました。"},
+        {"op": "get", "ja": "部長には 報告しました。"},
+    ],
+    "final_stores_both_keys": [
+        {"op": "final", "ja": "移植です。 天気ですね。", "en": "It is a port. Nice weather."},
+        {"op": "get", "ja": "移植です。天気ですね。"},
+        {"op": "get", "ja": "移植です。 天気ですね。"},
+        {"op": "get", "ja": "移植です。\u3000天気ですね。"},
+    ],
+    "final_without_spaces_stores_one_key": [
+        {"op": "final", "ja": "報告します。", "en": "I will report."},
+        {"op": "get", "ja": "報告します。"},
+    ],
+    "empty_translation_is_a_hit": [
+        {"op": "final", "ja": "空です。", "en": ""},
+        {"op": "get", "ja": "空です。"},
+    ],
+    "hit_refreshes_recency": [
+        {"op": "get", "ja": "はい。"},
+        *[{"op": "final", "ja": f"行{i:03d}。", "en": f"line {i}"} for i in range(240)],
+        {"op": "get", "ja": "はい。"},
+        {"op": "get", "ja": "いいよ。"},
+    ],
+    "evicts_oldest_past_256": [
+        *[{"op": "final", "ja": f"行{i:03d}。", "en": f"line {i}"} for i in range(300)],
+        {"op": "get", "ja": "はい。"},
+        {"op": "get", "ja": "行000。"},
+        {"op": "get", "ja": "行299。"},
+    ],
+    "spaced_finals_take_two_slots": [
+        *[{"op": "final", "ja": f"行 {i:03d}。", "en": f"line {i}"} for i in range(140)],
+        {"op": "get", "ja": "行000。"},
+        {"op": "get", "ja": "行 000。"},
+        {"op": "get", "ja": "行139。"},
+    ],
+    "preview_overwrite_moves_to_end": [
+        {"op": "preview", "ja": "あ。", "en": "first"},
+        *[{"op": "preview", "ja": f"行{i:03d}。", "en": f"line {i}"} for i in range(240)],
+        {"op": "preview", "ja": "あ。", "en": "second"},
+        *[{"op": "preview", "ja": f"次{i:03d}。", "en": f"next {i}"} for i in range(20)],
+        {"op": "get", "ja": "あ。"},
+        {"op": "get", "ja": "はい。"},
+    ],
+    "reset_restores_seeds": [
+        {"op": "final", "ja": "報告します。", "en": "I will report."},
+        {"op": "reset"},
+        {"op": "get", "ja": "報告します。"},
+        {"op": "get", "ja": "はい。"},
+    ],
+}
