@@ -45,31 +45,21 @@ export interface EncodedFrames {
   readonly frames: number;
 }
 
-/** The transducer decoder, cut by scripts/build_web_asr_models.py into its two halves. Both from one ORT build. */
+/** The fused fp32 `decoder_joint` as published, run on the wasm EP by both backends. */
 export interface DecoderSessions {
   readonly ort: OrtModule;
-  /** (targets, target_length, input_states_1/2) to (pred, output_states_1/2). */
-  readonly predictor: Ort.InferenceSession;
-  /** (encoder_outputs, pred) to logits. */
-  readonly joint: Ort.InferenceSession;
+  /** (encoder_outputs, targets, target_length, input_states_1/2) to (outputs, output_states_1/2). */
+  readonly decoder: Ort.InferenceSession;
 }
 
 type States = readonly [Ort.Tensor, Ort.Tensor];
 
-/**
- * The prediction network + joint over one clip's encoder frames. Greedy TDT re-feeds the
- * same token and state after every blank, so the predictor's output is kept and only the
- * joint runs again.
- */
-export class SplitJoint implements Joint<States> {
+/** The prediction network + joint over one clip's encoder frames, one fused graph run per TDT step. */
+export class FusedJoint implements Joint<States> {
   readonly #dec: DecoderSessions;
   readonly #cfg: HaasConfig;
   readonly #enc: EncodedFrames;
   readonly #targetLength: Ort.Tensor;
-  #token = -1;
-  #state: States | undefined;
-  #pred: Ort.Tensor | undefined;
-  #next: States | undefined;
 
   constructor(dec: DecoderSessions, cfg: HaasConfig, enc: EncodedFrames) {
     this.#dec = dec;
@@ -86,26 +76,16 @@ export class SplitJoint implements Joint<States> {
   }
 
   async step(t: number, token: number, state: States): Promise<{ logits: Float32Array; state: States }> {
-    const { ort, predictor, joint } = this.#dec;
-    const { Tensor } = ort;
-    if (token !== this.#token || state !== this.#state || this.#pred === undefined || this.#next === undefined) {
-      const p = await predictor.run({
-        targets: new Tensor("int32", Int32Array.of(token), [1, 1]),
-        target_length: this.#targetLength,
-        input_states_1: state[0],
-        input_states_2: state[1],
-      });
-      this.#token = token;
-      this.#state = state;
-      this.#pred = p["pred"]!;
-      this.#next = [p["output_states_1"]!, p["output_states_2"]!];
-    }
+    const { Tensor } = this.#dec.ort;
     const D = this.#cfg.dModel;
-    const out = await joint.run({
+    const out = await this.#dec.decoder.run({
       encoder_outputs: new Tensor("float32", this.#enc.data.subarray(t * D, (t + 1) * D), [1, D, 1]),
-      pred: this.#pred,
+      targets: new Tensor("int32", Int32Array.of(token), [1, 1]),
+      target_length: this.#targetLength,
+      input_states_1: state[0],
+      input_states_2: state[1],
     });
-    return { logits: out["outputs"]!.data as Float32Array, state: this.#next };
+    return { logits: out["outputs"]!.data as Float32Array, state: [out["output_states_1"]!, out["output_states_2"]!] };
   }
 }
 
@@ -128,7 +108,7 @@ export class HaasRecognizer {
 
   async decode(enc: EncodedFrames): Promise<{ ids: number[]; steps: number }> {
     if (enc.frames === 0) return { ids: [], steps: 0 };
-    return greedyTdt(new SplitJoint(this.#decoder, this.#cfg, enc), enc.frames, this.#cfg);
+    return greedyTdt(new FusedJoint(this.#decoder, this.#cfg, enc), enc.frames, this.#cfg);
   }
 
   detokenize(ids: readonly number[]): string {

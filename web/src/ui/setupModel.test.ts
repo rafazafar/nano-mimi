@@ -69,7 +69,7 @@ describe("downloadProgress", () => {
       states([
         [HAAS_FP16.id, "encoder.onnx", { kind: "ready" }],
         [HAAS_FP16.id, "encoder.onnx.data", { kind: "partial", bytes: encoderSize / 2 }],
-        [HAAS_DECODER.id, "predictor.onnx", { kind: "verifying" }],
+        [HAAS_DECODER.id, "fp32/decoder_joint.onnx", { kind: "verifying" }],
       ]),
     );
     const fp16 = p.models.find((m) => m.id === HAAS_FP16.id)!;
