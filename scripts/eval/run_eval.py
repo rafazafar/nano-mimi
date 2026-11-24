@@ -89,8 +89,8 @@ def main() -> None:
     ap.add_argument(
         "--live-vad",
         action="store_true",
-        help="use the live VAD tuning (400 ms silence close) instead of the replay tuning "
-        "(700 ms), which is the only tuning the web app has",
+        help="use the live VAD tuning (400 ms silence close), the one the web app runs, "
+        "instead of the replay tuning (700 ms)",
     )
     ap.add_argument(
         "--rescore",
