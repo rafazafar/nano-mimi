@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { asrModels, HAAS_DECODER, PARAKEET_EN_DECODER, PARAKEET_EN_FP16, PARAKEET_EN_TABLES, HAAS_FP16, HAAS_INT8, HAAS_TABLES } from "../asr/models";
 import { CAT_MODEL } from "../models/manifest";
 import type { FileState } from "../models/types";
+import { en } from "./i18n.en";
 import { BACKEND_KEY, MIRROR_ENDPOINT, buildManifest, downloadProgress, fileKey, parseBackend, describeEndpoint, parseEndpointParam, setupActionLabel } from "./setupModel";
 
 describe("parseEndpointParam", () => {
@@ -107,29 +108,29 @@ describe("downloadProgress", () => {
 
 describe("setupActionLabel", () => {
   it("offers to load when everything is on disk", () => {
-    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 0 })).toBe("Load models");
+    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 0 }, en)).toBe("Load models");
   });
 
   it("offers to resume when some is on disk, with what is left", () => {
-    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 150_000_000 })).toMatch(/^Resume download, .+ left$/);
+    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 150_000_000 }, en)).toMatch(/^Resume download, .+ left$/);
   });
 
   it("offers a full download when nothing is on disk, with the total", () => {
-    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 600_000_000 })).toMatch(/^Download \d/);
+    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 600_000_000 }, en)).toMatch(/^Download \d/);
   });
 });
 
 describe("describeEndpoint", () => {
   it("names the default host", () => {
-    expect(describeEndpoint({ kind: "default" })).toBe("Downloads come from huggingface.co.");
+    expect(describeEndpoint({ kind: "default" }, en)).toBe("Downloads come from huggingface.co.");
   });
 
   it("names a custom endpoint", () => {
-    expect(describeEndpoint({ kind: "custom", url: "https://mirror.example.com/hf" })).toContain("https://mirror.example.com/hf");
+    expect(describeEndpoint({ kind: "custom", url: "https://mirror.example.com/hf" }, en)).toContain("https://mirror.example.com/hf");
   });
 
   it("says an unusable endpoint was ignored and shortens a long one", () => {
-    const text = describeEndpoint({ kind: "invalid", raw: `javascript:${"x".repeat(300)}` });
+    const text = describeEndpoint({ kind: "invalid", raw: `javascript:${"x".repeat(300)}` }, en);
     expect(text).toContain("was ignored");
     expect(text).toContain("huggingface.co");
     expect(text.length).toBeLessThan(260);

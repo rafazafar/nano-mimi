@@ -1,4 +1,5 @@
 import { decodeWav } from "../audio/wav";
+import type { Messages } from "./i18n";
 import type { SourceSpec } from "../pipeline";
 
 export type SourceKind = "mic" | "tab" | "file";
@@ -28,26 +29,24 @@ export function toSourceSpec(choice: SourceChoice): SourceSpec | null {
   return { kind: choice.kind };
 }
 
-export const SOURCE_LABEL: Readonly<Record<SourceKind, string>> = { mic: "Microphone", tab: "Browser / system audio", file: "WAV file" };
-
-export function parseWavPick(name: string, bytes: Uint8Array): PickResult {
-  if (bytes.length === 0) return { ok: false, message: `${name} is empty.` };
-  if (bytes.length > MAX_WAV_BYTES) return tooLarge(name);
+export function parseWavPick(name: string, bytes: Uint8Array, m: Messages): PickResult {
+  if (bytes.length === 0) return { ok: false, message: m.errors.wavEmpty(name) };
+  if (bytes.length > MAX_WAV_BYTES) return tooLarge(name, m);
   try {
     const head = decodeWav(bytes.subarray(0, HEADER_BYTES));
-    if (head.samples.length === 0) return { ok: false, message: `${name} contains no audio.` };
+    if (head.samples.length === 0) return { ok: false, message: m.errors.wavNoAudio(name) };
     return { ok: true, pick: { name, bytes, sampleRate: head.sampleRate } };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    return { ok: false, message: `${name} is not a WAV this app can replay (${reason}). Use 16-bit PCM or 32-bit float WAV.` };
+    return { ok: false, message: m.errors.wavUnreadable(name, reason) };
   }
 }
 
-export async function readWavPick(file: File): Promise<PickResult> {
-  if (file.size > MAX_WAV_BYTES) return tooLarge(file.name);
-  return parseWavPick(file.name, new Uint8Array(await file.arrayBuffer()));
+export async function readWavPick(file: File, m: Messages): Promise<PickResult> {
+  if (file.size > MAX_WAV_BYTES) return tooLarge(file.name, m);
+  return parseWavPick(file.name, new Uint8Array(await file.arrayBuffer()), m);
 }
 
-function tooLarge(name: string): PickResult {
-  return { ok: false, message: `${name} is larger than 1 GB, which is more than the browser can replay.` };
+function tooLarge(name: string, m: Messages): PickResult {
+  return { ok: false, message: m.errors.wavTooLarge(name) };
 }

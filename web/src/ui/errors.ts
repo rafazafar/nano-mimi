@@ -1,32 +1,27 @@
+import type { Messages } from "./i18n";
 import type { SourceKind } from "./source";
 
 function errorName(error: unknown): string {
   return typeof error === "object" && error !== null && "name" in error ? String((error as { name: unknown }).name) : "";
 }
 
-export function errorMessage(error: unknown): string {
+export function errorMessage(error: unknown, m: Messages): string {
   if (error instanceof Error && error.message !== "") return error.message;
-  return typeof error === "string" && error !== "" ? error : "Something went wrong.";
+  return typeof error === "string" && error !== "" ? error : m.errors.unknown;
 }
 
-export function describeStartError(error: unknown, source: SourceKind): string {
-  const message = errorMessage(error);
+export function describeStartError(error: unknown, source: SourceKind, m: Messages): string {
+  const message = errorMessage(error, m);
   switch (errorName(error)) {
     case "NotAllowedError":
-      return source === "tab"
-        ? "Tab sharing was cancelled or blocked. Press Start, choose a tab, and tick “Share tab audio”."
-        : source === "mic"
-          ? "Microphone access was blocked. Allow it from the address bar, then press Start again."
-          : message;
+      return source === "tab" ? m.errors.tabCancelled : source === "mic" ? m.errors.micBlocked : message;
     case "NotFoundError":
-      return source === "mic" ? "No microphone was found. Connect one and press Start again." : message;
+      return source === "mic" ? m.errors.micMissing : message;
     case "NotReadableError":
-      return source === "mic" ? "The microphone is in use by another app. Close it there and press Start again." : message;
+      return source === "mic" ? m.errors.micBusy : message;
     case "AbortError":
-      return "Capture was interrupted before it started. Press Start to try again.";
+      return m.errors.captureAborted;
   }
-  if (source === "tab" && /audio/i.test(message) && /(no|without|missing)/i.test(message)) {
-    return "No audio was shared. In the share dialog choose a browser tab and tick “Share tab audio”, then press Start again.";
-  }
+  if (source === "tab" && /audio/i.test(message) && /(no|without|missing)/i.test(message)) return m.errors.noTabAudio;
   return message;
 }

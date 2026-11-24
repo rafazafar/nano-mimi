@@ -13,7 +13,9 @@ import { FloatingCaptions } from "./floating";
 import { GlossaryEditor } from "./glossaryEditor";
 import { GlossaryStore } from "./glossaryStore";
 import { HeaderView } from "./header";
+import { messagesFor, pickLocale, type Messages } from "./i18n";
 import { LiveView, isLiveState } from "./live";
+import type { PairLock } from "./pairSwitcher";
 import { detectPip } from "./pip";
 import { createFrameScheduler } from "./schedule";
 import { SetupView, isSetupState } from "./setup";
@@ -29,7 +31,7 @@ import {
   type EndpointChoice,
 } from "./setupModel";
 import { readWavPick, toSourceSpec, type PickedFile, type SourceKind } from "./source";
-import { canStart, initialAppState, reduceApp, statusLabel, type AppAction, type AppState, type Setup } from "./state";
+import { canStart, canSwitchPair, initialAppState, reduceApp, statusLabel, type AppAction, type AppState, type Setup } from "./state";
 import { clearItem, readItem, writeItem } from "./storage";
 import { applyTheme, effectiveTheme, loadTheme, saveTheme, toggleTheme, type ThemeChoice } from "./theme";
 
@@ -61,12 +63,16 @@ class App implements AppHandle {
   private theme: ThemeChoice;
   private disposed = false;
   private dragDepth = 0;
-  private readonly glossary: GlossaryStore;
+  /** The direction the app is set up for; changes only through `switchPair`. */
+  private pair: PairId;
+  private readonly messages: Messages;
+  private glossary: GlossaryStore;
+  private glossaryEditor: GlossaryEditor;
   private readonly shell: HTMLElement;
   private readonly header: HeaderView;
   private readonly setup: SetupView;
   private readonly live: LiveView;
-  private readonly diagnostics = new DiagnosticsView();
+  private readonly diagnostics: DiagnosticsView;
   private readonly floating: FloatingCaptions;
   private readonly frame = createFrameScheduler(window, () => this.paint());
   private readonly ticker: number;
@@ -76,18 +82,26 @@ class App implements AppHandle {
     private readonly root: HTMLElement,
     private readonly deps: AppDeps,
   ) {
-    this.glossary = new GlossaryStore(deps.storage);
+    const m = messagesFor(pickLocale(deps.env.languages, deps.env.search));
+    this.messages = m;
+    document.documentElement.lang = m.locale;
+    document.title = m.documentTitle;
+    this.pair = parsePair(readItem(deps.storage, PAIR_KEY)) ?? defaultPair(deps.env.languages);
+    this.glossary = new GlossaryStore(deps.storage, this.pair);
+    this.glossaryEditor = new GlossaryEditor(this.glossary, m);
+    this.diagnostics = new DiagnosticsView(m);
     this.theme = loadTheme(deps.storage);
     applyTheme(document.documentElement, this.theme);
 
-    this.header = new HeaderView(() => this.onToggleTheme());
-    this.setup = new SetupView({
+    this.header = new HeaderView(m, { onToggleTheme: () => this.onToggleTheme(), onSwitchPair: (pair) => this.switchPair(pair) });
+    this.setup = new SetupView(m, {
       onChooseBackend: (backend) => void this.chooseBackend(backend),
       onDownload: () => void this.startDownload(),
       onPause: () => this.download?.abort(),
       onRetry: () => this.retry(),
     });
     this.live = new LiveView(
+      m,
       {
         onChooseSource: (kind) => this.chooseSource(kind),
         onPickFile: (file) => void this.pickFile(file),
@@ -99,13 +113,15 @@ class App implements AppHandle {
     );
     this.floating = new FloatingCaptions({
       support: detectPip({ documentPictureInPicture: deps.env.pip, isSecureContext: deps.env.secureContext }),
+      messages: m,
+      pair: () => this.pair,
       opener: document,
       captions: () => this.captionState,
       changed: () => this.frame.schedule(),
     });
 
     const stage = h("main", { class: "stage", id: "main" }, this.setup.el, this.live.el);
-    const side = h("aside", { class: "side", "aria-label": "Glossary and diagnostics" }, new GlossaryEditor(this.glossary).el, this.diagnostics.el);
+    const side = h("aside", { class: "side", "aria-label": m.app.sidebarLabel }, this.glossaryEditor.el, this.diagnostics.el);
     this.shell = h("div", { class: "shell", "data-role": "shell" }, this.header.el, h("div", { class: "layout" }, stage, side));
     append(root, [this.shell]);
 
@@ -113,7 +129,8 @@ class App implements AppHandle {
     this.listenDrop();
     this.ticker = window.setInterval(() => this.tick(), TICK_MS);
     this.paint();
-    void this.boot();
+    this.probeGpu();
+    void this.check();
   }
 
   state = (): AppState => this.appState;
@@ -125,6 +142,7 @@ class App implements AppHandle {
     this.frame.cancel();
     this.download?.abort();
     this.floating.close();
+    this.header.dispose();
     for (const undo of this.cleanup) undo();
     const session = this.session;
     this.session = null;
@@ -151,21 +169,25 @@ class App implements AppHandle {
     if (kind === "loading-engines" || kind === "running" || kind === "stopping") this.frame.schedule();
   }
 
-  private async boot(): Promise<void> {
-    const { deps } = this;
-    void deps.probeGpu().then(
+  /** The adapter does not depend on the direction, so it is probed once for the life of the page. */
+  private probeGpu(): void {
+    void this.deps.probeGpu().then(
       (gpu) => {
         this.gpu = gpu;
         this.frame.schedule();
       },
       (error: unknown) => {
-        this.gpu = { kind: "unavailable", reason: errorMessage(error) };
+        this.gpu = { kind: "unavailable", reason: errorMessage(error, this.messages) };
         this.frame.schedule();
       },
     );
+  }
+
+  /** Checks this browser against the current pair's models and reads what is already on disk. */
+  private async check(): Promise<void> {
+    const { deps, pair } = this;
     try {
       const endpoint = parseEndpointParam(deps.env.search);
-      const pair = parsePair(readItem(deps.storage, PAIR_KEY)) ?? defaultPair(deps.env.languages);
       const issues = await deps.checkCapabilities(aggregateRequirements(buildManifest("webgpu", endpoint, pair)));
       const auto = asrBackend(issues);
       const stored = parseBackend(readItem(deps.storage, BACKEND_KEY));
@@ -174,7 +196,7 @@ class App implements AppHandle {
       this.dispatch({ type: "checked", setup });
       if (this.appState.kind === "loading-engines") void this.loadEngines();
     } catch (error) {
-      this.dispatch({ type: "boot-failed", message: `Could not check this browser: ${errorMessage(error)}` });
+      this.dispatch({ type: "boot-failed", message: this.messages.errors.bootCheck(errorMessage(error, this.messages)) });
     }
   }
 
@@ -214,7 +236,7 @@ class App implements AppHandle {
       if (setup !== null) this.dispatch({ type: "setup-updated", setup });
     } catch (error) {
       this.dispatch({ type: "download-started" });
-      this.dispatch({ type: "download-stopped", setup: state.setup, error: `Could not read model storage: ${errorMessage(error)}` });
+      this.dispatch({ type: "download-stopped", setup: state.setup, error: this.messages.errors.storageRead(errorMessage(error, this.messages)) });
     }
   }
 
@@ -236,7 +258,7 @@ class App implements AppHandle {
       this.storageGrant = store.storageGrant;
       const progress = downloadProgress(setup.manifest, this.fileStates);
       if (!store.allReady()) {
-        const reason = progress.failures.length > 0 ? progress.failures.join("; ") : "Some files did not finish downloading.";
+        const reason = progress.failures.length > 0 ? progress.failures.join("; ") : this.messages.errors.downloadIncomplete;
         this.dispatch({ type: "download-stopped", setup: { ...setup, missingBytes: progress.totalBytes - progress.doneBytes }, error: reason });
         return;
       }
@@ -248,7 +270,7 @@ class App implements AppHandle {
       this.dispatch({
         type: "download-stopped",
         setup: { ...setup, missingBytes: progress.totalBytes - progress.doneBytes },
-        error: paused ? null : errorMessage(error),
+        error: paused ? null : errorMessage(error, this.messages),
       });
     } finally {
       if (this.download === abort) this.download = null;
@@ -280,14 +302,37 @@ class App implements AppHandle {
       this.storageGrant = this.store?.storageGrant ?? this.storageGrant;
       this.dispatch({ type: "engines-ready", loadMs: engines.info.totalLoadMs });
     } catch (error) {
-      this.dispatch({ type: "engines-failed", message: `The models did not load: ${errorMessage(error)}` });
+      this.dispatch({ type: "engines-failed", message: this.messages.errors.modelsLoad(errorMessage(error, this.messages)) });
     }
   }
 
   private retry(): void {
     this.dispatch({ type: "retry" });
-    if (this.appState.kind === "booting") void this.boot();
+    if (this.appState.kind === "booting") void this.check();
     else if (this.appState.kind === "loading-engines") void this.loadEngines();
+  }
+
+  /**
+   * Moves to the other direction. The engines hold the old pair's recognizer, so they go, and so do the
+   * captions and any picked recording. The check then runs again for the new pair's models: all on disk
+   * leads straight to loading, else setup shows only the missing bytes.
+   */
+  private switchPair(pair: PairId): void {
+    if (pair === this.pair || !canSwitchPair(this.appState)) return;
+    writeItem(this.deps.storage, PAIR_KEY, pair);
+    this.pair = pair;
+    this.engines?.dispose();
+    this.engines = null;
+    this.store = null;
+    this.lastPick = null;
+    this.captionState = emptyCaptions;
+    this.floating.refresh();
+    this.glossary = new GlossaryStore(this.deps.storage, pair);
+    const editor = new GlossaryEditor(this.glossary, this.messages);
+    this.glossaryEditor.el.replaceWith(editor.el);
+    this.glossaryEditor = editor;
+    this.dispatch({ type: "pair-switch-requested" });
+    void this.check();
   }
 
   private chooseSource(kind: SourceKind): void {
@@ -295,7 +340,7 @@ class App implements AppHandle {
   }
 
   private async pickFile(file: File): Promise<void> {
-    const result = await readWavPick(file);
+    const result = await readWavPick(file, this.messages);
     if (this.appState.kind !== "ready") return;
     if (!result.ok) {
       this.dispatch({ type: "source-rejected", message: result.message });
@@ -329,10 +374,10 @@ class App implements AppHandle {
       this.dispatch({ type: "session-started" });
       session.ended.then(
         () => this.endSession(session, null),
-        (error: unknown) => this.endSession(session, errorMessage(error)),
+        (error: unknown) => this.endSession(session, errorMessage(error, this.messages)),
       );
     } catch (error) {
-      this.dispatch({ type: "session-failed", message: describeStartError(error, state.source.kind) });
+      this.dispatch({ type: "session-failed", message: describeStartError(error, state.source.kind, this.messages) });
     }
   }
 
@@ -344,7 +389,7 @@ class App implements AppHandle {
       await session.stop();
       this.endSession(session, null);
     } catch (error) {
-      this.endSession(session, errorMessage(error));
+      this.endSession(session, errorMessage(error, this.messages));
     }
   }
 
@@ -364,6 +409,11 @@ class App implements AppHandle {
   private toggleFloating(): void {
     if (this.floating.state.kind === "open") this.floating.close();
     else void this.floating.open();
+  }
+
+  private themeLabel(systemTheme: "light" | "dark"): string {
+    const names = this.messages.diagnostics.theme;
+    return this.theme === "system" ? names.system(names[systemTheme]) : names[this.theme];
   }
 
   private onToggleTheme(): void {
@@ -416,10 +466,12 @@ class App implements AppHandle {
     const setup = setupOf(state);
     const progress = setup === null ? EMPTY_PROGRESS : downloadProgress(setup.manifest, this.fileStates);
     this.header.update({
-      status: statusLabel(state, progress.fraction),
+      status: statusLabel(state, this.messages, progress.fraction),
       health: captions.health,
       backlogS: captions.backlogS,
       theme: effectiveTheme(this.theme, this.deps.env.systemDark.matches),
+      pair: this.pair,
+      pairLock: pairLock(state),
     });
 
     if (setupState) {
@@ -432,7 +484,7 @@ class App implements AppHandle {
       });
     }
     if (isLiveState(state)) {
-      this.live.update({ state, captions, floating: this.floating.state, elapsedS: this.session?.audioSeconds() ?? 0 });
+      this.live.update({ state, captions, floating: this.floating.state, pair: this.pair, elapsedS: this.session?.audioSeconds() ?? 0 });
     }
 
     const systemTheme = effectiveTheme("system", this.deps.env.systemDark.matches);
@@ -442,13 +494,18 @@ class App implements AppHandle {
       setup,
       engines: this.engines?.info ?? null,
       storageGrant: this.storageGrant,
-      theme: this.theme === "system" ? `system (${systemTheme})` : this.theme,
+      theme: this.themeLabel(systemTheme),
       rows: captions.rows,
     });
   }
 }
 
 const EMPTY_PROGRESS: DownloadProgress = { totalBytes: 0, doneBytes: 0, fraction: 0, models: [], failures: [] };
+
+function pairLock(state: AppState): PairLock {
+  if (canSwitchPair(state)) return null;
+  return state.kind === "starting" || state.kind === "running" || state.kind === "stopping" ? "live" : "busy";
+}
 
 function setupOf(state: AppState): Setup | null {
   if ("setup" in state) return state.setup;

@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import { CAT_MODEL } from "../models/manifest";
 import { asrModels } from "../asr/models";
 import { totalBytes } from "../models/types";
+import { en } from "./i18n.en";
+import { ja } from "./i18n.ja";
 import {
   canStart,
+  canSwitchPair,
   initialAppState,
   isFullyDownloaded,
   pendingPhases,
@@ -163,10 +166,45 @@ describe("derived", () => {
   });
 
   it("labels each state for the header", () => {
-    expect(statusLabel(initialAppState)).toEqual({ tone: "busy", label: "Checking this browser" });
-    expect(statusLabel(run([{ type: "checked", setup: setup() }, { type: "download-started" }]), 0.416)).toEqual({ tone: "busy", label: "Downloading 41%" });
-    expect(statusLabel(readyState())).toEqual({ tone: "ok", label: "Ready" });
-    expect(statusLabel(run([{ type: "start-requested" }, { type: "session-started" }], readyState())).tone).toBe("live");
-    expect(statusLabel(run([{ type: "boot-failed", message: "x" }])).tone).toBe("error");
+    expect(statusLabel(initialAppState, en)).toEqual({ tone: "busy", label: "Checking this browser" });
+    expect(statusLabel(run([{ type: "checked", setup: setup() }, { type: "download-started" }]), en, 0.416)).toEqual({ tone: "busy", label: "Downloading 41%" });
+    expect(statusLabel(readyState(), en)).toEqual({ tone: "ok", label: "Ready" });
+    expect(statusLabel(run([{ type: "start-requested" }, { type: "session-started" }], readyState()), en).tone).toBe("live");
+    expect(statusLabel(run([{ type: "boot-failed", message: "x" }]), en).tone).toBe("error");
+  });
+});
+
+describe("pair-switch-requested", () => {
+  const switching: AppAction = { type: "pair-switch-requested" };
+  const failed = (): AppState => run([{ type: "boot-failed", message: "x" }]);
+  const needsSetup = (): AppState => run([{ type: "checked", setup: setup() }]);
+  const downloading = (): AppState => run([{ type: "download-started" }], needsSetup());
+  const loading = (): AppState => run([{ type: "checked", setup: downloaded }]);
+  const running = (): AppState => run([{ type: "start-requested" }, { type: "session-started" }], readyState());
+
+  it("starts over from setup, ready and error", () => {
+    for (const from of [needsSetup(), readyState(), failed(), run([{ type: "engines-failed", message: "x" }], loading())]) {
+      expect(reduceApp(from, switching)).toBe(initialAppState);
+      expect(canSwitchPair(from)).toBe(true);
+    }
+  });
+
+  it("is dropped while a download, a load or a session holds the current pair", () => {
+    for (const from of [initialAppState, downloading(), loading(), run([{ type: "start-requested" }], readyState()), running(), run([{ type: "stop-requested" }], running())]) {
+      expect(reduceApp(from, switching)).toBe(from);
+      expect(canSwitchPair(from)).toBe(false);
+    }
+  });
+
+  it("goes on to the usual checked transitions", () => {
+    const afterSwitch = reduceApp(readyState(), switching);
+    expect(reduceApp(afterSwitch, { type: "checked", setup: downloaded }).kind).toBe("loading-engines");
+    expect(reduceApp(afterSwitch, { type: "checked", setup: setup({ pair: "en-ja" }) }).kind).toBe("needs-setup");
+  });
+});
+
+describe("statusLabel in Japanese", () => {
+  it("speaks Japanese", () => {
+    expect(statusLabel(readyState(), ja)).toEqual({ tone: "ok", label: "準備完了" });
   });
 });

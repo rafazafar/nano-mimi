@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { en } from "./i18n.en";
+import { ja } from "./i18n.ja";
 import { formatBehind, formatMs, formatSeconds, formatTimestamp, percentile } from "./format";
 
 describe("formatTimestamp", () => {
@@ -23,23 +25,23 @@ describe("formatTimestamp", () => {
 
 describe("durations", () => {
   it("keeps precision proportional to size", () => {
-    expect(formatSeconds(0.314)).toBe("0.31 s");
-    expect(formatSeconds(4.2)).toBe("4.20 s");
-    expect(formatSeconds(38.04)).toBe("38.0 s");
-    expect(formatSeconds(412.6)).toBe("413 s");
-    expect(formatSeconds(Number.NaN)).toBe("-");
+    expect(formatSeconds(0.314, en.units)).toBe("0.31 s");
+    expect(formatSeconds(4.2, en.units)).toBe("4.20 s");
+    expect(formatSeconds(38.04, en.units)).toBe("38.0 s");
+    expect(formatSeconds(412.6, en.units)).toBe("413 s");
+    expect(formatSeconds(Number.NaN, en.units)).toBe("-");
   });
 
   it("keeps sub-second load times in milliseconds", () => {
-    expect(formatMs(820.4)).toBe("820 ms");
-    expect(formatMs(14_230)).toBe("14.2 s");
+    expect(formatMs(820.4, en.units)).toBe("820 ms");
+    expect(formatMs(14_230, en.units)).toBe("14.2 s");
   });
 });
 
 describe("formatBehind", () => {
   it("rounds to whole seconds and tells behind from overloaded", () => {
-    expect(formatBehind(5.4, "behind")).toBe("Behind by 5 s");
-    expect(formatBehind(11.6, "overloaded")).toBe("Overloaded, 12 s behind");
+    expect(formatBehind(5.4, "behind", en)).toBe("Behind by 5 s");
+    expect(formatBehind(11.6, "overloaded", en)).toBe("Overloaded, 12 s behind");
   });
 });
 
@@ -65,5 +67,13 @@ describe("percentile", () => {
 
   it("handles one value", () => {
     expect(percentile([0.8], 0.95)).toBe(0.8);
+  });
+});
+
+describe("in Japanese", () => {
+  it("uses Japanese unit and phrase words", () => {
+    expect(formatSeconds(4.2, ja.units)).toBe("4.20 秒");
+    expect(formatMs(820, ja.units)).toBe("820 ms");
+    expect(formatBehind(5.4, "behind", ja)).toBe("5 秒遅れ");
   });
 });

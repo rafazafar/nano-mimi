@@ -3,6 +3,7 @@ import type { AsrBackend } from "../asr/models";
 import type { CapabilityIssue } from "../models";
 import type { Manifest } from "../models/types";
 import type { EnginePhase } from "../pipeline";
+import type { Messages } from "./i18n";
 import type { EndpointChoice } from "./setupModel";
 import type { SourceChoice } from "./source";
 
@@ -67,6 +68,8 @@ export type AppAction =
   | { readonly type: "engines-ready"; readonly loadMs: number }
   | { readonly type: "engines-failed"; readonly message: string }
   | { readonly type: "retry" }
+  /** The user picked the other direction. The app stored it and starts over, checking the new pair's models. */
+  | { readonly type: "pair-switch-requested" }
   | { readonly type: "source-chosen"; readonly source: SourceChoice }
   | { readonly type: "source-rejected"; readonly message: string }
   | { readonly type: "start-requested" }
@@ -124,6 +127,8 @@ export function reduceApp(state: AppState, action: AppAction): AppState {
     case "retry":
       if (state.kind !== "error") return state;
       return state.retry.target === "boot" ? initialAppState : loadingEngines(state.retry.setup);
+    case "pair-switch-requested":
+      return state.kind === "needs-setup" || state.kind === "ready" || state.kind === "error" ? initialAppState : state;
     case "source-chosen":
       return state.kind === "ready" ? { ...state, source: action.source, sourceError: null } : state;
     case "source-rejected":
@@ -149,26 +154,29 @@ export function reduceApp(state: AppState, action: AppAction): AppState {
 
 export type StatusTone = "busy" | "idle" | "ok" | "live" | "error";
 
+/** Where the direction can be changed: not while a download, a model load or a session holds the current pair. */
+export const canSwitchPair = (state: AppState): boolean => state.kind === "needs-setup" || state.kind === "ready" || state.kind === "error";
+
 /** The header chip: a short word for where the app is. `downloadFraction` is the live 0-1 progress while downloading. */
-export function statusLabel(state: AppState, downloadFraction = 0): { readonly tone: StatusTone; readonly label: string } {
+export function statusLabel(state: AppState, m: Messages, downloadFraction = 0): { readonly tone: StatusTone; readonly label: string } {
   switch (state.kind) {
     case "booting":
-      return { tone: "busy", label: "Checking this browser" };
+      return { tone: "busy", label: m.status.checking };
     case "needs-setup":
-      return { tone: "idle", label: "Setup needed" };
+      return { tone: "idle", label: m.status.setupNeeded };
     case "downloading":
-      return { tone: "busy", label: `Downloading ${Math.floor(downloadFraction * 100)}%` };
+      return { tone: "busy", label: m.status.downloading(Math.floor(downloadFraction * 100)) };
     case "loading-engines":
-      return { tone: "busy", label: "Loading models" };
+      return { tone: "busy", label: m.status.loadingModels };
     case "ready":
-      return { tone: "ok", label: "Ready" };
+      return { tone: "ok", label: m.status.ready };
     case "starting":
-      return { tone: "busy", label: "Starting" };
+      return { tone: "busy", label: m.status.starting };
     case "running":
-      return { tone: "live", label: "Live" };
+      return { tone: "live", label: m.status.live };
     case "stopping":
-      return { tone: "busy", label: "Finishing" };
+      return { tone: "busy", label: m.status.finishing };
     case "error":
-      return { tone: "error", label: "Needs attention" };
+      return { tone: "error", label: m.status.needsAttention };
   }
 }

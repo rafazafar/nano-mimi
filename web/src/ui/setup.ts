@@ -3,6 +3,7 @@ import { formatBytes, totalBytes, type FileState } from "../models/types";
 import type { EnginePhase } from "../pipeline";
 import { h, setAttr, setHidden, setText } from "./dom";
 import { formatMs } from "./format";
+import type { Messages } from "./i18n";
 import { icon } from "./icons";
 import { ENGINE_PHASES, type AppState, type EnginePhases, type Setup, type SetupStage } from "./state";
 import { buildManifest, describeEndpoint, setupActionLabel, type DownloadProgress, type FileProgress } from "./setupModel";
@@ -24,32 +25,21 @@ export interface SetupModel {
   readonly loadElapsedMs: number;
 }
 
-const BACKEND_COPY: Readonly<Record<AsrBackend, { readonly title: string; readonly detail: string }>> = {
-  webgpu: { title: "GPU (WebGPU)", detail: "Fastest. Speech recognition runs on your graphics card." },
-  wasm: { title: "CPU (WebAssembly)", detail: "For machines without a usable GPU. Slower, and translation still needs WebGPU." },
-};
-
-const PHASE_LABEL: Readonly<Record<EnginePhase, string>> = {
-  vad: "Voice detection",
-  asr: "Speech recognition",
-  mt: "Translation",
-};
-
 export const isSetupState = (state: AppState): state is SetupStage =>
   state.kind === "booting" || state.kind === "needs-setup" || state.kind === "downloading" || state.kind === "loading-engines" || state.kind === "error";
 
-function describeFile(state: FileState, size: number): string {
+function describeFile(state: FileState, size: number, m: Messages): string {
   switch (state.kind) {
     case "missing":
       return formatBytes(size);
     case "partial":
-      return `${formatBytes(state.bytes)} of ${formatBytes(size)}`;
+      return m.setup.file.partial(formatBytes(state.bytes), formatBytes(size));
     case "verifying":
-      return "Verifying";
+      return m.setup.file.verifying;
     case "ready":
-      return `${formatBytes(size)} verified`;
+      return m.setup.file.verified(formatBytes(size));
     case "failed":
-      return "Failed";
+      return m.setup.file.failed;
   }
 }
 
@@ -85,6 +75,7 @@ export class SetupView {
   private readonly capability: HTMLElement;
   private readonly checks: HTMLElement;
   private readonly capabilityNote: HTMLElement;
+  private readonly speechModel: HTMLElement;
   private readonly backendBlock: HTMLElement;
   private readonly backendOptions: HTMLElement;
   private readonly backendNote: HTMLElement;
@@ -109,30 +100,35 @@ export class SetupView {
   private builtFor: unknown = null;
   private optionsBuiltFor: unknown = null;
 
-  constructor(private readonly callbacks: SetupCallbacks) {
+  constructor(
+    private readonly m: Messages,
+    private readonly callbacks: SetupCallbacks,
+  ) {
+    const text = m.setup;
     this.lede = h("p", { class: "lede" });
-    this.bootingBlock = h("div", { class: "setup-block busy-line", "data-role": "booting" }, h("span", { class: "spinner", "aria-hidden": "true" }), "Checking this browser");
+    this.bootingBlock = h("div", { class: "setup-block busy-line", "data-role": "booting" }, h("span", { class: "spinner", "aria-hidden": "true" }), text.checking);
 
     this.checks = h("ul", { class: "checks", "data-role": "checks" });
     this.capabilityNote = h("p", { class: "note" });
-    this.capability = h("section", { class: "setup-block", "data-role": "capability", "aria-labelledby": "setup-h-browser" }, h("h2", { id: "setup-h-browser" }, "This browser"), this.checks, this.capabilityNote);
+    this.capability = h("section", { class: "setup-block", "data-role": "capability", "aria-labelledby": "setup-h-browser" }, h("h2", { id: "setup-h-browser" }, text.browserHeading), this.checks, this.capabilityNote);
 
     this.backendOptions = h("div", { class: "options", role: "radiogroup", "aria-labelledby": "setup-h-speech" });
     this.backendNote = h("p", { class: "note" });
-    this.backendBlock = h("section", { class: "setup-block", "data-role": "backend" }, h("h2", { id: "setup-h-speech" }, "Speech recognition"), this.backendOptions, this.backendNote);
+    this.speechModel = h("p", { class: "note speech-model", "data-role": "speech-model" });
+    this.backendBlock = h("section", { class: "setup-block", "data-role": "backend" }, h("h2", { id: "setup-h-speech" }, text.speechHeading), this.speechModel, this.backendOptions, this.backendNote);
 
     this.endpointNote = h("p", { class: "note endpoint-note", "data-role": "endpoint" });
     this.overallText = h("p", { class: "overall-text", "data-role": "overall" });
-    this.overall = meter("Download progress");
+    this.overall = meter(text.progressLabel);
     this.fileList = h("div", { class: "files", "data-role": "files" });
     this.setupError = h("p", { class: "notice notice-error", role: "alert", "data-role": "setup-error", hidden: true });
     this.primaryLabel = h("span", {});
     this.primary = h("button", { class: "btn btn-primary", type: "button", "data-role": "download", onclick: () => this.callbacks.onDownload() }, icon("download"), this.primaryLabel);
-    this.pause = h("button", { class: "btn", type: "button", "data-role": "pause", hidden: true, onclick: () => this.callbacks.onPause() }, icon("pause"), "Pause");
+    this.pause = h("button", { class: "btn", type: "button", "data-role": "pause", hidden: true, onclick: () => this.callbacks.onPause() }, icon("pause"), text.pause);
     this.modelsBlock = h(
       "section",
       { class: "setup-block", "data-role": "models" },
-      h("h2", { id: "setup-h-models" }, "Models"),
+      h("h2", { id: "setup-h-models" }, text.modelsHeading),
       this.endpointNote,
       h("div", { class: "overall" }, this.overallText, this.overall.el),
       this.fileList,
@@ -147,25 +143,25 @@ export class SetupView {
         "li",
         { class: "phase", "data-phase": phase },
         h("span", { class: "phase-mark", "aria-hidden": "true" }, icon("check", "icon phase-icon"), h("span", { class: "spinner" }), h("span", { class: "pending-dot" })),
-        h("span", { class: "phase-name" }, PHASE_LABEL[phase]),
+        h("span", { class: "phase-name" }, text.phases[phase]),
         time,
       );
       this.phaseRows.set(phase, { el, time });
       this.phaseList.append(el);
     }
     this.elapsed = h("p", { class: "note", "data-role": "load-elapsed" });
-    this.enginesBlock = h("section", { class: "setup-block", "data-role": "engines" }, h("h2", {}, "Loading models"), this.phaseList, this.elapsed);
+    this.enginesBlock = h("section", { class: "setup-block", "data-role": "engines" }, h("h2", {}, text.enginesHeading), this.phaseList, this.elapsed);
 
     this.errorText = h("p", { class: "notice notice-error", role: "alert", "data-role": "fatal-error" });
     this.errorBlock = h(
       "section",
       { class: "setup-block", "data-role": "fatal" },
-      h("h2", {}, "Something stopped"),
+      h("h2", {}, text.fatalHeading),
       this.errorText,
-      h("div", { class: "actions" }, h("button", { class: "btn btn-primary", type: "button", "data-role": "retry", onclick: () => this.callbacks.onRetry() }, icon("retry"), "Try again")),
+      h("div", { class: "actions" }, h("button", { class: "btn btn-primary", type: "button", "data-role": "retry", onclick: () => this.callbacks.onRetry() }, icon("retry"), text.tryAgain)),
     );
 
-    this.el = h("section", { class: "setup", "data-role": "setup" }, h("header", { class: "setup-head" }, h("h1", {}, "Set up live captions"), this.lede), this.bootingBlock, this.capability, this.backendBlock, this.modelsBlock, this.enginesBlock, this.errorBlock);
+    this.el = h("section", { class: "setup", "data-role": "setup" }, h("header", { class: "setup-head" }, h("h1", {}, text.title), this.lede), this.bootingBlock, this.capability, this.backendBlock, this.modelsBlock, this.enginesBlock, this.errorBlock);
   }
 
   update(model: SetupModel): void {
@@ -184,18 +180,18 @@ export class SetupView {
       return;
     }
     if (state.kind === "error") {
-      setText(this.lede, "Nothing was lost. Fix the cause below and try again.");
+      setText(this.lede, this.m.setup.ledeError);
       setText(this.errorText, state.message);
       if (state.retry.target === "load-engines") this.paintCapability(state.retry.setup, model);
       return;
     }
     if (state.kind === "loading-engines") {
-      setText(this.lede, "The models are on this device. Loading them into memory needs no network.");
+      setText(this.lede, this.m.setup.ledeLoading);
       this.paintPhases(state.phases);
-      setText(this.elapsed, `Loading for ${formatMs(model.loadElapsedMs)}.`);
+      setText(this.elapsed, this.m.setup.loadingFor(formatMs(model.loadElapsedMs, this.m.units)));
       return;
     }
-    setText(this.lede, `Captions run entirely in this browser. The speech and translation models (${formatBytes(state.setup.totalBytes)}) download once and stay on this device.`);
+    setText(this.lede, this.m.setup.ledeSetup(formatBytes(state.setup.totalBytes)));
     this.paintCapability(state.setup, model);
     this.paintBackend(state, model);
     this.paintModels(state, model);
@@ -204,8 +200,8 @@ export class SetupView {
   private paintCapability(setup: Setup, model: SetupModel): void {
     const lines: [boolean, string, string | undefined][] =
       setup.issues.length === 0
-        ? [[true, model.gpuLabel === null ? "WebGPU is available, with everything the models need." : `WebGPU is available (${model.gpuLabel}), with everything the models need.`, undefined]]
-        : setup.issues.map((issue) => [false, issue.message, issue.code]);
+        ? [[true, this.m.setup.webgpuOk(model.gpuLabel), undefined]]
+        : setup.issues.map((issue) => [false, this.m.setup.issue(issue), issue.code]);
     const key = JSON.stringify(lines);
     if (key !== this.checksKey) {
       this.checksKey = key;
@@ -213,7 +209,7 @@ export class SetupView {
     }
     setText(
       this.capabilityNote,
-      setup.issues.length === 0 ? "" : "Translation runs on WebGPU in every setup, so captions may not load here even with CPU speech recognition.",
+      setup.issues.length === 0 ? "" : this.m.setup.issuesNote,
     );
     setHidden(this.capabilityNote, setup.issues.length === 0);
   }
@@ -224,7 +220,9 @@ export class SetupView {
 
   private paintBackend(state: Extract<AppState, { kind: "needs-setup" | "downloading" }>, model: SetupModel): void {
     const { setup } = state;
+    const text = this.m.setup;
     const locked = state.kind === "downloading";
+    setText(this.speechModel, text.speechModel[setup.pair]);
     if (this.optionsBuiltFor !== setup.manifest) {
       this.optionsBuiltFor = setup.manifest;
       const options = (["webgpu", "wasm"] as const).map((backend) => {
@@ -237,9 +235,9 @@ export class SetupView {
           h(
             "span",
             { class: "option-body" },
-            h("span", { class: "option-title" }, BACKEND_COPY[backend].title, backend === setup.autoBackend ? h("span", { class: "tag tag-ok" }, "Recommended here") : null),
-            h("span", { class: "option-detail" }, BACKEND_COPY[backend].detail),
-            h("span", { class: "option-size" }, `${formatBytes(size)} to download in total`),
+            h("span", { class: "option-title" }, text.backend[backend].title, backend === setup.autoBackend ? h("span", { class: "tag tag-ok" }, text.recommended) : null),
+            h("span", { class: "option-detail" }, text.backend[backend].detail),
+            h("span", { class: "option-size" }, text.sizeTotal(formatBytes(size))),
           ),
         );
       });
@@ -250,11 +248,11 @@ export class SetupView {
       input.disabled = locked;
     }
     const lines: string[] = [];
-    if (setup.backend !== setup.autoBackend) lines.push(`You overrode the recommendation (${BACKEND_COPY[setup.autoBackend].title}).`);
+    if (setup.backend !== setup.autoBackend) lines.push(text.overrode(text.backend[setup.autoBackend].title));
     if (setup.backend === "wasm" && !model.crossOriginIsolated) {
-      lines.push("This page is not cross-origin isolated, so the CPU path runs on one thread and will be much slower.");
+      lines.push(text.notIsolated);
     }
-    if (setup.backend === "webgpu" && setup.issues.length > 0) lines.push("The browser check above found problems for the GPU path.");
+    if (setup.backend === "webgpu" && setup.issues.length > 0) lines.push(text.gpuProblems);
     setText(this.backendNote, lines.join(" "));
     setHidden(this.backendNote, lines.length === 0);
   }
@@ -267,18 +265,25 @@ export class SetupView {
       for (const f of m.files) this.paintFile(m.id, f);
     }
     const downloading = state.kind === "downloading";
-    setText(this.endpointNote, describeEndpoint(setup.endpoint));
+    setText(this.endpointNote, describeEndpoint(setup.endpoint, this.m));
     setAttr(this.endpointNote, "data-kind", setup.endpoint.kind);
     setText(
       this.overallText,
-      progress.totalBytes === 0 ? "No models are configured." : `${formatBytes(progress.doneBytes)} of ${formatBytes(progress.totalBytes)}`,
+      progress.totalBytes === 0 ? this.m.setup.noModels : this.m.setup.overall(formatBytes(progress.doneBytes), formatBytes(progress.totalBytes)),
     );
     setAttr(this.overallText, "data-state", downloading ? "downloading" : setup.missingBytes === 0 ? "ready" : "needs-download");
     setMeter(this.overall, progress.fraction);
     const error = state.kind === "needs-setup" ? state.error : null;
     setText(this.setupError, error ?? "");
     setHidden(this.setupError, error === null);
-    setText(this.primaryLabel, downloading ? "Downloading" : state.kind === "needs-setup" && error !== null ? `Try again, ${formatBytes(setup.missingBytes)}${setup.missingBytes < setup.totalBytes ? " left" : ""}` : setupActionLabel(setup));
+    setText(
+      this.primaryLabel,
+      downloading
+        ? this.m.setup.downloading
+        : state.kind === "needs-setup" && error !== null
+          ? this.m.setup.retry(formatBytes(setup.missingBytes), setup.missingBytes < setup.totalBytes)
+          : setupActionLabel(setup, this.m),
+    );
     this.primary.disabled = downloading || progress.totalBytes === 0;
     setAttr(this.primary, "aria-busy", downloading ? "true" : null);
     setHidden(this.pause, !downloading);
@@ -306,7 +311,7 @@ export class SetupView {
     if (row === undefined) return;
     setAttr(row.el, "data-state", f.state.kind);
     setMeter(row.meter, f.size === 0 ? 1 : f.doneBytes / f.size);
-    setText(row.detail, describeFile(f.state, f.size));
+    setText(row.detail, describeFile(f.state, f.size, this.m));
   }
 
   private paintPhases(phases: EnginePhases): void {
@@ -315,7 +320,7 @@ export class SetupView {
       const status = phases[phase];
       if (row === undefined) continue;
       setAttr(row.el, "data-status", status.kind);
-      setText(row.time, status.kind === "done" ? formatMs(status.ms) : status.kind === "loading" ? "Loading" : "Waiting");
+      setText(row.time, status.kind === "done" ? formatMs(status.ms, this.m.units) : status.kind === "loading" ? this.m.setup.phaseLoading : this.m.setup.phaseWaiting);
     }
   }
 }

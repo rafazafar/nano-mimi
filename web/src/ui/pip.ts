@@ -1,3 +1,5 @@
+import type { Messages } from "./i18n";
+
 /** The slice of Document Picture-in-Picture the app uses (Chrome and Edge 116+). */
 export interface DocumentPipApi {
   requestWindow(options?: { readonly width?: number; readonly height?: number }): Promise<Window>;
@@ -5,19 +7,19 @@ export interface DocumentPipApi {
   readonly window?: Window | null;
 }
 
-export type PipSupport =
-  | { readonly kind: "available"; readonly api: DocumentPipApi }
-  | { readonly kind: "unavailable"; readonly reason: string };
+/** Why the floating window cannot open here; `pipUnavailableText` words it. */
+export type PipUnavailable = "unsupported" | "insecure";
 
-export const PIP_UNSUPPORTED = "Floating captions need Chrome or Edge 116 or later.";
-export const PIP_INSECURE = "Floating captions need a secure page (https or localhost).";
+export type PipSupport = { readonly kind: "available"; readonly api: DocumentPipApi } | { readonly kind: "unavailable"; readonly reason: PipUnavailable };
+
+export const pipUnavailableText = (reason: PipUnavailable, m: Messages): string => (reason === "unsupported" ? m.errors.pipUnsupported : m.errors.pipInsecure);
 
 export function detectPip(host: { readonly documentPictureInPicture?: unknown; readonly isSecureContext?: boolean }): PipSupport {
   const api = host.documentPictureInPicture;
   if (typeof api !== "object" || api === null || typeof (api as { requestWindow?: unknown }).requestWindow !== "function") {
-    return { kind: "unavailable", reason: PIP_UNSUPPORTED };
+    return { kind: "unavailable", reason: "unsupported" };
   }
-  if (host.isSecureContext === false) return { kind: "unavailable", reason: PIP_INSECURE };
+  if (host.isSecureContext === false) return { kind: "unavailable", reason: "insecure" };
   return { kind: "available", api: api as DocumentPipApi };
 }
 
@@ -28,17 +30,17 @@ export interface PipHandle {
 
 export type PipOpenResult = { readonly ok: true; readonly handle: PipHandle } | { readonly ok: false; readonly message: string };
 
-export function describePipError(error: unknown): string {
+export function describePipError(error: unknown, m: Messages): string {
   const name = typeof error === "object" && error !== null && "name" in error ? String((error as { name: unknown }).name) : "";
   switch (name) {
     case "NotAllowedError":
-      return "The browser only opens the floating window straight from a click. Press the button again.";
+      return m.errors.pipNeedsClick;
     case "SecurityError":
-      return PIP_INSECURE;
+      return m.errors.pipInsecure;
     case "NotSupportedError":
-      return PIP_UNSUPPORTED;
+      return m.errors.pipUnsupported;
     default:
-      return `Could not open the floating window${error instanceof Error && error.message !== "" ? `: ${error.message}` : "."}`;
+      return m.errors.pipOpenFailed(error instanceof Error && error.message !== "" ? error.message : null);
   }
 }
 
@@ -64,6 +66,7 @@ export function copyStyles(from: Document, to: Document): void {
 }
 
 export interface OpenPipOptions {
+  readonly messages: Messages;
   /** Called once when the window goes away, whether the viewer closed it or the page did. */
   readonly onClosed: () => void;
   readonly width?: number;
@@ -81,8 +84,8 @@ export async function openPictureInPicture(api: DocumentPipApi, opener: Document
     if (stale !== undefined && stale !== null && !stale.closed) stale.close();
     const win = await api.requestWindow({ width: options.width ?? 460, height: options.height ?? 320 });
     copyStyles(opener, win.document);
-    win.document.title = "MimiVox captions";
-    win.document.documentElement.lang = "en";
+    win.document.title = options.messages.pip.windowTitle;
+    win.document.documentElement.lang = options.messages.locale;
     const theme = opener.documentElement.dataset["theme"];
     if (theme !== undefined) win.document.documentElement.dataset["theme"] = theme;
     let closed = false;
@@ -106,6 +109,6 @@ export async function openPictureInPicture(api: DocumentPipApi, opener: Document
       },
     };
   } catch (error) {
-    return { ok: false, message: describePipError(error) };
+    return { ok: false, message: describePipError(error, options.messages) };
   }
 }
