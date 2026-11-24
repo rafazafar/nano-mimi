@@ -1,7 +1,7 @@
 import type { AsrBackend } from "../asr/models";
 import { formatBytes, totalBytes, type FileState } from "../models/types";
 import type { EnginePhase } from "../pipeline";
-import { h, replaceChildren, setAttr, setHidden, setText } from "./dom";
+import { h, setAttr, setHidden, setText } from "./dom";
 import { formatMs } from "./format";
 import { icon } from "./icons";
 import { ENGINE_PHASES, type AppState, type EnginePhases, type Setup, type SetupStage } from "./state";
@@ -215,7 +215,7 @@ export class SetupView {
     const key = JSON.stringify(lines);
     if (key !== this.checksKey) {
       this.checksKey = key;
-      replaceChildren(this.checks, lines.map(([ok, text, code]) => this.check(ok, text, code)));
+      this.checks.replaceChildren(...lines.map(([ok, text, code]) => this.check(ok, text, code)));
     }
     setText(
       this.capabilityNote,
@@ -249,7 +249,7 @@ export class SetupView {
           ),
         );
       });
-      replaceChildren(this.backendOptions, options);
+      this.backendOptions.replaceChildren(...options);
     }
     for (const input of this.backendOptions.querySelectorAll<HTMLInputElement>("input")) {
       input.checked = input.value === setup.backend;
@@ -304,7 +304,7 @@ export class SetupView {
       });
       return h("div", { class: "file-group" }, h("h3", {}, m.label, h("span", { class: "group-size" }, formatBytes(m.size))), h("ul", {}, ...rows));
     });
-    replaceChildren(this.fileList, groups);
+    this.fileList.replaceChildren(...groups);
   }
 
   private paintFile(modelId: string, f: FileProgress): void {

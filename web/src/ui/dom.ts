@@ -44,8 +44,3 @@ export function setAttr(el: Element, name: string, value: string | null): void {
 export function setHidden(el: HTMLElement, hidden: boolean): void {
   if (el.hidden !== hidden) el.hidden = hidden;
 }
-
-/** Replaces a node's children when `render` produces a different set; used for small, rarely changing lists. */
-export function replaceChildren(parent: Element, children: readonly Node[]): void {
-  parent.replaceChildren(...children);
-}
