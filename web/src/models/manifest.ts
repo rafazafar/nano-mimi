@@ -1,3 +1,4 @@
+import { ASR_MODELS } from "../asr/models";
 import type { Manifest, ModelSpec } from "./types";
 
 /**
@@ -30,7 +31,8 @@ export const CAT_MODEL: ModelSpec = {
 
 /**
  * The shipped model list. Add entries here (see `ModelSpec`) rather than changing the store.
- * The setup page can also load a manifest from `?manifest=<url>` and an endpoint from
- * `?endpoint=<url>` for testing.
+ * The ASR entries are the WebGPU set; picking the int8 set on machines that fail the
+ * capability check (`asrBackend`) is the app's job. The setup page can also load a manifest
+ * from `?manifest=<url>` and an endpoint from `?endpoint=<url>` for testing.
  */
-export const DEFAULT_MANIFEST: Manifest = { models: [CAT_MODEL] };
+export const DEFAULT_MANIFEST: Manifest = { models: [...ASR_MODELS.webgpu, CAT_MODEL] };
