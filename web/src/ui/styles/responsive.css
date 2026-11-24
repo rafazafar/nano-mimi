@@ -28,6 +28,17 @@
     padding: var(--s-2) var(--s-3);
   }
 
+  /* Pinned to the viewport's gutters, below the button where it would sit in flow, so it cannot run off the right edge. */
+  .pair-menu {
+    position: fixed;
+    left: var(--s-3);
+    right: var(--s-3);
+    top: auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
   .dock {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--s-3);
