@@ -10,8 +10,11 @@ It stores nothing. Each request streams from Hugging Face through the worker.
 cd workers/hf-proxy
 npm install
 npx wrangler login
+openssl rand -hex 32 | npx wrangler secret put CDN_SIGNING_KEY
 npx wrangler deploy
 ```
+
+`CDN_SIGNING_KEY` signs the `/_cdn/` links the worker issues (see below). Any long random string works. Without it, the worker answers every request with 500.
 
 Wrangler prints the address, such as `https://mimivox-hf-proxy.<account>.workers.dev`. Use that as the Download Source.
 
@@ -22,7 +25,9 @@ Wrangler prints the address, such as `https://mimivox-hf-proxy.<account>.workers
 | `/api/models/<repo>[/revision/<rev>]` | Repo metadata for `snapshot_download` and model sizes |
 | `/<repo>/resolve/<rev>/<file>` | File downloads |
 | `/api/resolve-cache/models/<repo>/...` | Where the Hub redirects small files |
-| `/_cdn/<host>/...` | Large files. The Hub redirects them to signed CDN URLs, and the worker rewrites those redirects to this route |
+| `/_cdn/<sig>/<host>/...` | Large files. The Hub redirects them to signed CDN URLs, and the worker rewrites those redirects to this route |
+
+`<sig>` is an HMAC of the CDN URL under `CDN_SIGNING_KEY`. The worker serves `/_cdn/` only for links it issued itself, after checking the repo. A storage URL that someone fetched from the Hub for another repo is refused with 403.
 
 Only GET and HEAD are allowed. The worker never forwards Authorization or cookies, so it serves public repos only.
 
@@ -35,6 +40,7 @@ By default, only the models MimiVox downloads. To change that, set `ALLOWED_REPO
 ## Run it locally
 
 ```bash
+printf 'CDN_SIGNING_KEY=%s\n' "$(openssl rand -hex 32)" > .dev.vars
 npm run dev
 HF_ENDPOINT=http://localhost:8787 python -c 'from huggingface_hub import snapshot_download; print(snapshot_download("Wespeaker/wespeaker-voxceleb-resnet34-LM"))'
 ```
