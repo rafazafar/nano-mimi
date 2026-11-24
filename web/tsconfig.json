@@ -17,5 +17,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "e2e", "*.ts"]
+  "include": ["src", "e2e", "bench", "*.ts"]
 }
