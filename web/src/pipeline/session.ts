@@ -1,5 +1,5 @@
 import { StreamingVad } from "../audio/streamingVad";
-import { LIVE_TUNING } from "../audio/vadStateMachine";
+import { EN_LIVE_TUNING, LIVE_TUNING } from "../audio/vadStateMachine";
 import type { Glossary } from "../core/glossary";
 import type { Engines } from "./engines";
 import { UtteranceFeed } from "./feed";
@@ -52,7 +52,7 @@ export async function startSession(options: SessionOptions): Promise<Session> {
   });
   pipeline.subscribe(onEvent);
   engines.scorer.reset();
-  const feed = new UtteranceFeed(new StreamingVad(LIVE_TUNING, engines.scorer), pipeline, (detail) => pipeline.reportError(detail));
+  const feed = new UtteranceFeed(new StreamingVad(engines.pair === "en-ja" ? EN_LIVE_TUNING : LIVE_TUNING, engines.scorer), pipeline, (detail) => pipeline.reportError(detail));
 
   try {
     await source.start((samples) => feed.feed(samples));

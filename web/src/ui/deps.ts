@@ -30,6 +30,8 @@ export interface AppEnv {
   readonly secureContext: boolean;
   /** `navigator.languages`: picks the UI language and the first-run pair. */
   readonly languages: readonly string[];
+  /** `getDisplayMedia` exists: desktop browsers, not Android or iOS. Browser/system audio is then the default source. */
+  readonly canCaptureTab: boolean;
 }
 
 export interface AppDeps {

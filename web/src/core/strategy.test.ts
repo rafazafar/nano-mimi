@@ -51,6 +51,12 @@ describe("en-ja cleaning", () => {
     expect(cleanCatEnJa("ボタンには「Translate this」と書かれています。").text).toBe("ボタンには「Translate this」と書かれています。");
   });
 
+  it("keeps one copy of a decode loop and drops the rest", () => {
+    const loop = "そんな感じだよ。" + "えー、彼がそうならないでね。".repeat(12) + "えー、彼がそう";
+    expect(cleanCatEnJa(loop).text).toBe("そんな感じだよ。えー、彼がそうならないでね。");
+    expect(cleanCatEnJa("はははと笑った。").text).toBe("はははと笑った。");
+  });
+
   it("joins lines without spaces inside Japanese", () => {
     expect(cleanCatEnJa("今日は\n晴れです。").text).toBe("今日は晴れです。");
   });
@@ -97,6 +103,21 @@ describe("pair-dependent source handling", () => {
 
   it("turns off preview and split repair for en-ja only", () => {
     expect([en.preview, en.splitRepair, ja.preview, ja.splitRepair]).toEqual([false, false, true, true]);
+  });
+});
+
+describe("en-ja segments", () => {
+  it("packs whole sentences into groups of at most 120 characters", () => {
+    const a = "I got some big shop updates for you because I have been dealing with the landlord situation.";
+    const b = "We just hired some new employees.";
+    const c = "So I am going to introduce you to the crew.";
+    expect(en.translate.segments(src(`${a} ${b} ${c}`))).toEqual([a, `${b} ${c}`]);
+  });
+
+  it("keeps a short line, or one with no sentence end, whole", () => {
+    expect(en.translate.segments(src("See you. Bye."))).toEqual(["See you. Bye."]);
+    expect(en.translate.segments(src("and then we went on and on"))).toEqual(["and then we went on and on"]);
+    expect(ja.translate.segments(src("はい。いいえ。"))).toEqual(["はい。いいえ。"]);
   });
 });
 

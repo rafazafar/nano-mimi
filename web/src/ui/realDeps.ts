@@ -21,6 +21,7 @@ export function realDeps(): AppDeps {
       pip: (window as { documentPictureInPicture?: AppDeps["env"]["pip"] }).documentPictureInPicture,
       secureContext: isSecureContext,
       languages: navigator.languages,
+      canCaptureTab: typeof navigator.mediaDevices?.getDisplayMedia === "function",
     },
   };
 }

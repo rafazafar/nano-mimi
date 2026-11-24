@@ -39,7 +39,7 @@ const wavPick = { kind: "file", pick: { name: "a.wav", bytes: new Uint8Array(4),
 const readyState = (): AppState =>
   run([
     { type: "checked", setup: downloaded },
-    { type: "engines-ready", loadMs: 9_000 },
+    { type: "engines-ready", loadMs: 9_000, source: "mic" },
   ]);
 
 describe("app lifecycle", () => {
@@ -63,7 +63,7 @@ describe("app lifecycle", () => {
       { type: "phase", phase: "asr", status: { kind: "loading" } },
       { type: "phase", phase: "asr", status: { kind: "done", ms: 4000 } },
       { type: "phase", phase: "mt", status: { kind: "done", ms: 6000 } },
-      { type: "engines-ready", loadMs: 10_300 },
+      { type: "engines-ready", loadMs: 10_300, source: "mic" },
     ]);
     expect(state).toMatchObject({ kind: "ready", loadMs: 10_300, source: { kind: "mic" }, sourceError: null });
   });
@@ -147,7 +147,7 @@ describe("illegal transitions", () => {
     ["a second start while starting", run([{ type: "start-requested" }], readyState()), { type: "start-requested" }],
     ["stop when nothing runs", readyState(), { type: "stop-requested" }],
     ["a phase report after the load failed", run([{ type: "checked", setup: downloaded }, { type: "engines-failed", message: "x" }]), { type: "phase", phase: "mt", status: { kind: "loading" } }],
-    ["engines-ready when not loading", readyState(), { type: "engines-ready", loadMs: 1 }],
+    ["engines-ready when not loading", readyState(), { type: "engines-ready", loadMs: 1, source: "mic" }],
     ["a source change while running", run([{ type: "start-requested" }, { type: "session-started" }], readyState()), { type: "source-chosen", source: { kind: "tab" } }],
     ["a download while ready", readyState(), { type: "download-started" }],
     ["session-ended while ready", readyState(), { type: "session-ended", error: null }],

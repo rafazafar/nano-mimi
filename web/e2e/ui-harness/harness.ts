@@ -74,6 +74,7 @@ const deps: AppDeps = {
     secureContext: isSecureContext,
     // `?lang=ja-JP` stands in for a Japanese browser.
     languages: new URLSearchParams(location.search).get("lang")?.split(",") ?? ["en-US"],
+    canCaptureTab: new URLSearchParams(location.search).has("tab"),
   },
 };
 

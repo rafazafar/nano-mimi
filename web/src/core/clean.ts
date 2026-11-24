@@ -200,7 +200,15 @@ export function cleanCatEnJa(rawOutput: string): CleanedCat {
       .map(pyStrip)
       .filter((line) => line !== ""),
   );
-  return { text: asEnText(pyStrip(joined.replace(EN_JA_LABEL, ""))), promptLeak, japaneseStripped: false };
+  return { text: asEnText(pyStrip(cutRepeatLoop(joined.replace(EN_JA_LABEL, "")))), promptLeak, japaneseStripped: false };
+}
+
+/** A run of 4+ characters said three times in a row is a decode loop; it runs to the token cap, so keep one copy and cut the rest. */
+const REPEAT_LOOP = /(.{4,}?)\1{2,}[\s\S]*$/u;
+
+export function cutRepeatLoop(text: string): string {
+  // The match can start on the full stop before the loop ("。えー…ね" for "えー…ね。"); close the kept copy with it too.
+  return text.replace(REPEAT_LOOP, (_, unit: string) => unit + (/^[。、！？]+/u.exec(unit)?.[0] ?? ""));
 }
 
 function englishSentenceKeys(text: string): Set<string> {

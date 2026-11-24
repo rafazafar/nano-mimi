@@ -311,7 +311,7 @@ class App implements AppHandle {
       }
       this.engines = engines;
       this.storageGrant = this.store?.storageGrant ?? this.storageGrant;
-      this.dispatch({ type: "engines-ready", loadMs: engines.info.totalLoadMs });
+      this.dispatch({ type: "engines-ready", loadMs: engines.info.totalLoadMs, source: this.deps.env.canCaptureTab ? "tab" : "mic" });
     } catch (error) {
       this.dispatch({ type: "engines-failed", message: this.messages.errors.modelsLoad(errorMessage(error, this.messages)) });
     }
