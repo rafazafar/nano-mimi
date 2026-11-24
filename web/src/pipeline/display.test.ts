@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asJaText } from "../core/types";
+import { asEnText, asJaText } from "../core/types";
 import { displayHarness, type DisplayHarness } from "./harness";
 import { kinds, settle } from "./testing";
 import type { PipelineEvent } from "./types";
@@ -279,7 +279,7 @@ describe("previews", () => {
 
   it("gives the preview the same context the final will see", async () => {
     const h = displayHarness();
-    h.context.add(asJaText("見積もりが届きました。"), "A quote arrived" as never);
+    h.context.add(asJaText("見積もりが届きました。"), asEnText("A quote arrived"));
     h.mt.auto = () => "Reply by next week.";
     h.partial("来週までに返事をしないといけないですね。");
     await h.stage.idle();

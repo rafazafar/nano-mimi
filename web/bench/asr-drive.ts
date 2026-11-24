@@ -8,13 +8,12 @@
 // holds the models between runs. Writes web/.bench/results/<name>.json; score it with
 // `uv run python web/bench/asr_score.py <name>`. Exits non-zero unless the page was
 // crossOriginIsolated and, on webgpu, the adapter was a real (non-fallback) one.
-import { createReadStream, mkdirSync, statSync, writeFileSync } from "node:fs";
-import { createServer as createHttpServer } from "node:http";
-import type { AddressInfo } from "node:net";
-import { join, normalize } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { chromium } from "@playwright/test";
 import { createServer as createViteServer } from "vite";
+import { serveRoots } from "./serve.ts";
 
 const WEB = new URL("..", import.meta.url).pathname;
 const { positionals, values } = parseArgs({
@@ -31,37 +30,8 @@ const { positionals, values } = parseArgs({
 const name = positionals[0];
 if (name === undefined) throw new Error("usage: node bench/asr-drive.ts <name> [options]");
 
-const roots: Record<string, string> = { models: join(WEB, ".models"), clips: join(WEB, ".bench") };
-const files = createHttpServer((req, res) => {
-  const cors = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Range",
-    "Access-Control-Expose-Headers": "Content-Range, Content-Length",
-    "Cross-Origin-Resource-Policy": "cross-origin",
-  };
-  if (req.method === "OPTIONS") return void res.writeHead(204, cors).end();
-  const [, root = "", ...rest] = decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname).split("/");
-  const base = roots[root];
-  const path = base === undefined ? undefined : normalize(join(base, ...rest));
-  let size = -1;
-  try {
-    if (path !== undefined && base !== undefined && path.startsWith(base)) size = statSync(path).size;
-  } catch {
-    size = -1;
-  }
-  if (path === undefined || size < 0) return void res.writeHead(404, cors).end();
-  const m = /^bytes=(\d+)-$/.exec(req.headers.range ?? "");
-  const start = m?.[1] === undefined ? 0 : Number(m[1]);
-  res.writeHead(m === null ? 200 : 206, {
-    ...cors,
-    "Content-Type": "application/octet-stream",
-    "Content-Length": size - start,
-    ...(m === null ? {} : { "Content-Range": `bytes ${start}-${size - 1}/${size}` }),
-  });
-  createReadStream(path, { start }).pipe(res);
-});
-await new Promise<void>((r) => files.listen(0, "127.0.0.1", r));
-const filesOrigin = `http://127.0.0.1:${(files.address() as AddressInfo).port}`;
+const files = await serveRoots({ models: join(WEB, ".models"), clips: join(WEB, ".bench") });
+const filesOrigin = files.origin;
 
 const vite = await createViteServer({
   root: WEB,

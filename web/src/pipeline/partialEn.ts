@@ -1,11 +1,9 @@
-import type { TranslationCache } from "../core/cache";
-import type { Glossary } from "../core/glossary";
-import { applyGlossary } from "../core/glossary";
+import { translationCacheKey, type TranslationCache } from "../core/cache";
 import type { TranslationContext } from "../core/context";
+import { applyGlossary, type Glossary } from "../core/glossary";
 import { cpLength, isMostlyEnglish, normalizePunctuation, pyStrip } from "../core/text";
 import { asEnText, asJaText, type EnText, type JaText } from "../core/types";
-import { translationCacheKey } from "../core/cache";
-import type { GpuQueue, GpuJob } from "./gpuQueue";
+import type { GpuJob, GpuQueue } from "./gpuQueue";
 import type { MtEngine, PipelineEvent } from "./types";
 
 /** Clause-ending marks: a line holding one is worth previewing even when it is short. */

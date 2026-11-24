@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asJaText } from "../core/types";
+import { asEnText, asJaText, type JaText } from "../core/types";
 import { displayHarness } from "./harness";
 import { PartialEnCoordinator } from "./partialEn";
 import { deferred, settle } from "./testing";
@@ -7,9 +7,9 @@ import type { PipelineEvent } from "./types";
 
 const ja = asJaText;
 /** `n` Japanese characters with no clause end. */
-const run = (n: number): ReturnType<typeof asJaText> => ja("あ".repeat(n));
+const run = (n: number): JaText => ja("あ".repeat(n));
 /** The line a preview of `run(n)` sends, and so the cache key it seeds: normalization closes the sentence. */
-const sent = (n: number): ReturnType<typeof asJaText> => ja(`${"あ".repeat(n)}。`);
+const sent = (n: number): JaText => ja(`${"あ".repeat(n)}。`);
 const partials = (events: readonly PipelineEvent[]) => events.filter((e): e is Extract<PipelineEvent, { kind: "partial_en" }> => e.kind === "partial_en");
 
 describe("when a preview starts", () => {
@@ -50,7 +50,7 @@ describe("when a preview starts", () => {
 
   it("does nothing for a line the cache already holds", async () => {
     const h = displayHarness();
-    h.cache.storePreview(ja("来週までに返事をします。"), "I will reply by next week." as never);
+    h.cache.storePreview(ja("来週までに返事をします。"), asEnText("I will reply by next week."));
     h.coordinator.schedule(ja("来週までに返事をします。"));
     expect(h.mt.previews()).toHaveLength(0);
   });
