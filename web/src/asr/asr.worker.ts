@@ -53,25 +53,24 @@ async function init(req: AsrInit): Promise<HaasRecognizer> {
   const enc = ASR_ENCODER[req.backend];
   const encUrl = await store.getObjectUrl(enc.model.id, enc.path);
   const dataUrl = await store.getObjectUrl(enc.model.id, enc.data);
-  const decoderSession = async (path: string): Promise<Ort.InferenceSession> =>
-    ortCpu.InferenceSession.create(new Uint8Array(await store.getArrayBuffer(HAAS_DECODER.id, path)), {
+  const decoderSession = async (): Promise<Ort.InferenceSession> =>
+    ortCpu.InferenceSession.create(new Uint8Array(await store.getArrayBuffer(HAAS_DECODER.id, HAAS_DECODER.files[0]!.path)), {
       executionProviders: ["wasm"],
       graphOptimizationLevel: "all",
     });
   try {
-    const [tables, encoder, predictor, joint] = await Promise.all([
+    const [tables, encoder, decoder] = await Promise.all([
       loadTables(store),
       encOrt.InferenceSession.create(encUrl, {
         executionProviders: [req.backend === "webgpu" ? { name: "webgpu" } : "wasm"],
         graphOptimizationLevel: "all",
         externalData: [{ path: enc.data.split("/").pop()!, data: dataUrl }],
       }),
-      decoderSession("predictor.onnx"),
-      decoderSession("joint.onnx"),
+      decoderSession(),
     ]);
     const device = await describeDevice(req.backend);
     post({ type: "ready", device, loadMs: performance.now() - t0 });
-    return new HaasRecognizer(tables, { ort: encOrt, session: encoder }, { ort: ortCpu, predictor, joint });
+    return new HaasRecognizer(tables, { ort: encOrt, session: encoder }, { ort: ortCpu, decoder });
   } finally {
     URL.revokeObjectURL(encUrl);
     URL.revokeObjectURL(dataUrl);

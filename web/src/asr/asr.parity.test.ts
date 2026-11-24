@@ -17,7 +17,7 @@ interface Meta {
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const FIX = `${ROOT}fixtures/asr/`;
 /** Staged by scripts/build_web_asr_models.py; too big to commit. */
-const DECODER = `${ROOT}.models/mimivox/Haas-ja-v1.0-onnx-web/resolve/fp16-v1/`;
+const DECODER = `${ROOT}.models/basyauma-tech/Haas-ja-v1.0-onnx/resolve/73eda93e49262e7b66127db36d54767a0e4ef089/fp32/decoder_joint.onnx`;
 
 function bytes(name: string): Uint8Array {
   const b = readFileSync(FIX + name);
@@ -76,14 +76,14 @@ describe("detokenizer", () => {
   });
 });
 
-describe.skipIf(!existsSync(`${DECODER}joint.onnx`))("TDT greedy decode (stage models with scripts/build_web_asr_models.py)", () => {
+describe.skipIf(!existsSync(DECODER))("TDT greedy decode (stage models with scripts/build_web_asr_models.py)", () => {
   let recognizer: HaasRecognizer;
 
   beforeAll(async () => {
     ort.env.wasm.numThreads = 1;
     ort.env.wasm.wasmBinary = readFileSync(`${ROOT}node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm`) as unknown as ArrayBuffer;
-    const session = (f: string) => ort.InferenceSession.create(readFileSync(DECODER + f), { executionProviders: ["wasm"] });
-    recognizer = new HaasRecognizer(tables, null as never, { ort, predictor: await session("predictor.onnx"), joint: await session("joint.onnx") });
+    const decoder = await ort.InferenceSession.create(readFileSync(DECODER), { executionProviders: ["wasm"] });
+    recognizer = new HaasRecognizer(tables, null as never, { ort, decoder });
   });
 
   it.each(meta.decode.map((d) => [d.sid, d] as const))("emits Python's token ids on clip %s's encoder frames", async (_sid, d) => {

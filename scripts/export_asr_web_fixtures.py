@@ -1,6 +1,7 @@
 """Export the browser ASR's parity fixtures and bench clips from the Python reference.
 
-Needs the files ``scripts/build_web_asr_models.py`` staged under ``web/.models`` and the
+Needs the tables ``scripts/build_web_asr_models.py`` wrote to ``web/public/asr``, the public
+model files staged under ``web/.models/<repo>/resolve/<revision>/`` (``hf download`` them) and the
 FLEURS cache (``scripts/eval/fetch_fleurs.py``).
 
 - ``web/fixtures/asr/`` (committed): the JS front end's tables, one clip's audio and its
@@ -34,7 +35,8 @@ from mimivox.eval.meetings import normalize_rms, read_wav
 
 ROOT = Path(__file__).resolve().parent.parent
 MODELS = ROOT / "web" / ".models"
-WEB = MODELS / "mimivox/Haas-ja-v1.0-onnx-web/resolve/fp16-v1"
+WEB = ROOT / "web" / "public" / "asr"
+FP16 = MODELS / "Sanami/haas-ja-onnx/resolve/354baedfd9612b00e74cc1ae87dff7f2c558db6f/fp16"
 SRC = MODELS / "basyauma-tech/Haas-ja-v1.0-onnx/resolve/73eda93e49262e7b66127db36d54767a0e4ef089"
 FIXTURES = ROOT / "web" / "fixtures" / "asr"
 BENCH = ROOT / "web" / ".bench"
@@ -81,7 +83,7 @@ def main() -> None:
     cpu = ["CPUExecutionProvider"]
     backend = HaasONNX(
         cfg,
-        ort.InferenceSession(str(WEB / "encoder.onnx"), so, providers=cpu),
+        ort.InferenceSession(str(FP16 / "encoder.onnx"), so, providers=cpu),
         ort.InferenceSession(str(SRC / "fp32/decoder_joint.onnx"), so, providers=cpu),
         window,
         fb,
