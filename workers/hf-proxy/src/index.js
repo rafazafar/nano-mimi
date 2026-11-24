@@ -30,6 +30,7 @@ const DEFAULT_REPOS = [
   "mlx-community/Qwen3-4B-Instruct-2507-4bit",
   "Wespeaker/wespeaker-voxceleb-resnet34-LM",
   // The browser app's models (ONNX).
+  "rafazafar/CAT-Translate-0.8b-onnx-q4f16",
   "rafazafar/CAT-Translate-1.4b-onnx-q4f16",
   "basyauma-tech/Haas-ja-v1.0-onnx",
   "Sanami/haas-ja-onnx",

@@ -141,7 +141,12 @@ export class CatEngine {
     env.useWasmCache = false;
     env.fetch = storeFetch(store, model);
     const onnx = env.backends.onnx;
-    if (onnx.wasm !== undefined) onnx.wasm.wasmPaths = WASM_PATHS;
+    if (onnx.wasm !== undefined) {
+      onnx.wasm.wasmPaths = WASM_PATHS;
+      // CAT runs on the WebGPU EP, so wasm threads buy nothing (102 tok/s either way), and under
+      // cross-origin isolation the threaded runtime can stall session creation in this worker.
+      onnx.wasm.numThreads = 1;
+    }
 
     const adapter = await adapterInfo();
     const t0 = performance.now();
