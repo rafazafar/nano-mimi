@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 import type * as Ort from "onnxruntime-web";
+import asyncifyMjs from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.mjs?url";
 import asyncifyWasm from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url";
+import plainMjs from "onnxruntime-web/ort-wasm-simd-threaded.mjs?url";
 import plainWasm from "onnxruntime-web/ort-wasm-simd-threaded.wasm?url";
 import * as ortCpu from "onnxruntime-web/wasm";
 import * as ortGpu from "onnxruntime-web/webgpu";
@@ -45,10 +47,12 @@ async function init(req: AsrInit): Promise<HaasRecognizer> {
   if (!store.allReady()) throw new Error("ASR models are not downloaded; run the model setup first");
   // Only the WebGPU EP needs the asyncify build. Everything on the wasm EP, the decoder's ~250 small
   // runs per clip above all, uses the plain build, which skips asyncify's instrumentation.
+  // Each build gets its own emscripten module file: bundled into this worker, both builds would spawn
+  // their pthreads from this chunk and the threaded init never finishes.
   ortGpu.env.wasm.numThreads = req.threads;
-  ortGpu.env.wasm.wasmPaths = { wasm: asyncifyWasmUrl(__ORT_VERSION__, asyncifyWasm) };
+  ortGpu.env.wasm.wasmPaths = { mjs: asyncifyMjs, wasm: asyncifyWasmUrl(__ORT_VERSION__, asyncifyWasm) };
   ortCpu.env.wasm.numThreads = req.threads;
-  ortCpu.env.wasm.wasmPaths = { wasm: plainWasm };
+  ortCpu.env.wasm.wasmPaths = { mjs: plainMjs, wasm: plainWasm };
   const encOrt = req.backend === "webgpu" ? ortGpu : ortCpu;
   const enc = ASR_ENCODER[req.backend];
   const encUrl = await store.getObjectUrl(enc.model.id, enc.path);
