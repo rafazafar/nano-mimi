@@ -1,4 +1,5 @@
 import { asrBackend, type AsrBackend } from "../asr/models";
+import { defaultPair, parsePair, type PairId } from "../core/pair";
 import { aggregateRequirements, type StorageGrant } from "../models";
 import type { FileRef, FileState } from "../models/types";
 import type { CaptionState, Engines, PipelineEvent, Session } from "../pipeline";
@@ -18,6 +19,7 @@ import { createFrameScheduler } from "./schedule";
 import { SetupView, isSetupState } from "./setup";
 import {
   BACKEND_KEY,
+  PAIR_KEY,
   buildManifest,
   downloadProgress,
   fileKey,
@@ -163,10 +165,11 @@ class App implements AppHandle {
     );
     try {
       const endpoint = parseEndpointParam(deps.env.search);
-      const issues = await deps.checkCapabilities(aggregateRequirements(buildManifest("webgpu", endpoint)));
+      const pair = parsePair(readItem(deps.storage, PAIR_KEY)) ?? defaultPair(deps.env.languages);
+      const issues = await deps.checkCapabilities(aggregateRequirements(buildManifest("webgpu", endpoint, pair)));
       const auto = asrBackend(issues);
       const stored = parseBackend(readItem(deps.storage, BACKEND_KEY));
-      const setup = await this.inspect(stored ?? auto, auto, endpoint, issues);
+      const setup = await this.inspect(pair, stored ?? auto, auto, endpoint, issues);
       if (setup === null || this.disposed) return;
       this.dispatch({ type: "checked", setup });
       if (this.appState.kind === "loading-engines") void this.loadEngines();
@@ -175,9 +178,9 @@ class App implements AppHandle {
     }
   }
 
-  private async inspect(backend: AsrBackend, auto: AsrBackend, endpoint: EndpointChoice, issues: Setup["issues"]): Promise<Setup | null> {
+  private async inspect(pair: PairId, backend: AsrBackend, auto: AsrBackend, endpoint: EndpointChoice, issues: Setup["issues"]): Promise<Setup | null> {
     const token = ++this.inspectSeq;
-    const manifest = buildManifest(backend, endpoint);
+    const manifest = buildManifest(backend, endpoint, pair);
     this.fileStates = new Map();
     const store = this.deps.createModelStore(manifest, (ref: FileRef, state: FileState) => {
       if (token !== this.inspectSeq) return;
@@ -189,6 +192,7 @@ class App implements AppHandle {
     this.store = store;
     const progress = downloadProgress(manifest, this.fileStates);
     return {
+      pair,
       manifest,
       endpoint,
       issues,
@@ -205,8 +209,8 @@ class App implements AppHandle {
     if (backend === state.setup.autoBackend) clearItem(this.deps.storage, BACKEND_KEY);
     else writeItem(this.deps.storage, BACKEND_KEY, backend);
     try {
-      const { endpoint, issues, autoBackend } = state.setup;
-      const setup = await this.inspect(backend, autoBackend, endpoint, issues);
+      const { pair, endpoint, issues, autoBackend } = state.setup;
+      const setup = await this.inspect(pair, backend, autoBackend, endpoint, issues);
       if (setup !== null) this.dispatch({ type: "setup-updated", setup });
     } catch (error) {
       this.dispatch({ type: "download-started" });
@@ -259,7 +263,7 @@ class App implements AppHandle {
     this.loadStartedMs = clock.nowMs();
     const started = new Map<string, number>();
     try {
-      const engines = await this.deps.loadEngines(setup.manifest, setup.backend, (phase, edge) => {
+      const engines = await this.deps.loadEngines(setup.manifest, setup.backend, setup.pair, (phase, edge) => {
         const now = clock.nowMs();
         if (edge === "start") {
           started.set(phase, now);

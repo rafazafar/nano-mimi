@@ -1,3 +1,4 @@
+import type { PairId } from "../../src/core/pair";
 import type { Glossary } from "../../src/core/glossary";
 import { asJaText } from "../../src/core/types";
 import type { StorageGrant } from "../../src/models";
@@ -155,12 +156,14 @@ const ENGINE_INFO: EngineInfo = {
 /** The engine loader, stepped by the test (or by a timer in `auto` mode). Returns unusable engines: the UI never calls them. */
 export class EnginesControl {
   private onPhase: ((phase: EnginePhase, state: "start" | "done") => void) | null = null;
+  private pair: PairId = "ja-en";
   private done: { readonly resolve: (engines: Engines) => void; readonly reject: (error: Error) => void } | null = null;
   disposed = 0;
 
   constructor(private readonly auto: boolean) {}
 
-  load(onPhase: (phase: EnginePhase, state: "start" | "done") => void): Promise<Engines> {
+  load(pair: PairId, onPhase: (phase: EnginePhase, state: "start" | "done") => void): Promise<Engines> {
+    this.pair = pair;
     this.onPhase = onPhase;
     return new Promise<Engines>((resolve, reject) => {
       this.done = { resolve, reject };
@@ -194,6 +197,7 @@ export class EnginesControl {
       throw new Error(`${what} is not used by the UI harness`);
     };
     return {
+      pair: this.pair,
       asr: { transcribe: async () => asJaText("") },
       mt: { translate: unused("mt.translate") },
       scorer: { score: async () => 0, reset: () => undefined },

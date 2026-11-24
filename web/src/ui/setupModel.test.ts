@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASR_MODELS, HAAS_DECODER, HAAS_FP16, HAAS_INT8, HAAS_TABLES } from "../asr/models";
+import { asrModels, HAAS_DECODER, PARAKEET_EN_DECODER, PARAKEET_EN_FP16, PARAKEET_EN_TABLES, HAAS_FP16, HAAS_INT8, HAAS_TABLES } from "../asr/models";
 import { CAT_MODEL } from "../models/manifest";
 import type { FileState } from "../models/types";
 import { BACKEND_KEY, MIRROR_ENDPOINT, buildManifest, downloadProgress, fileKey, parseBackend, describeEndpoint, parseEndpointParam, setupActionLabel } from "./setupModel";
@@ -29,16 +29,20 @@ describe("parseEndpointParam", () => {
 
 describe("buildManifest", () => {
   it("lists the backend's ASR files and the translator; the mirror backs the default endpoint, not a custom one", () => {
-    expect(buildManifest("webgpu", { kind: "default" })).toEqual({
+    expect(buildManifest("webgpu", { kind: "default" }, "ja-en")).toEqual({
       fallbackEndpoint: MIRROR_ENDPOINT,
       models: [HAAS_TABLES, HAAS_FP16, HAAS_DECODER, CAT_MODEL],
     });
-    expect(buildManifest("wasm", { kind: "custom", url: "http://localhost:9" })).toEqual({
+    expect(buildManifest("wasm", { kind: "custom", url: "http://localhost:9" }, "ja-en")).toEqual({
       endpoint: "http://localhost:9",
       models: [HAAS_TABLES, HAAS_INT8, HAAS_DECODER, CAT_MODEL],
     });
-    expect(buildManifest("webgpu", { kind: "invalid", raw: "x" }).endpoint).toBeUndefined();
-    expect(buildManifest("wasm", { kind: "default" }).models).toEqual([...ASR_MODELS.wasm, CAT_MODEL]);
+    expect(buildManifest("webgpu", { kind: "invalid", raw: "x" }, "ja-en").endpoint).toBeUndefined();
+    expect(buildManifest("wasm", { kind: "default" }, "ja-en").models).toEqual([...asrModels("ja-en", "wasm"), CAT_MODEL]);
+  });
+
+  it("swaps in the English recognizer for en-ja and keeps the same translator", () => {
+    expect(buildManifest("webgpu", { kind: "default" }, "en-ja").models).toEqual([PARAKEET_EN_TABLES, PARAKEET_EN_FP16, PARAKEET_EN_DECODER, CAT_MODEL]);
   });
 });
 
@@ -53,7 +57,7 @@ describe("parseBackend", () => {
 });
 
 describe("downloadProgress", () => {
-  const manifest = buildManifest("webgpu", { kind: "default" });
+  const manifest = buildManifest("webgpu", { kind: "default" }, "ja-en");
   const states = (entries: [string, string, FileState][]): Map<string, FileState> =>
     new Map(entries.map(([modelId, path, state]) => [fileKey({ modelId, path }), state]));
 

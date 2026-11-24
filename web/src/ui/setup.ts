@@ -228,7 +228,7 @@ export class SetupView {
     if (this.optionsBuiltFor !== setup.manifest) {
       this.optionsBuiltFor = setup.manifest;
       const options = (["webgpu", "wasm"] as const).map((backend) => {
-        const size = totalBytes(buildManifest(backend, setup.endpoint));
+        const size = totalBytes(buildManifest(backend, setup.endpoint, setup.pair));
         const input = h("input", { type: "radio", name: "asr-backend", value: backend, "data-backend": backend, onchange: () => this.callbacks.onChooseBackend(backend) });
         return h(
           "label",

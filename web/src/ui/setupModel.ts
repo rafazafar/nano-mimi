@@ -1,4 +1,5 @@
-import { ASR_MODELS, type AsrBackend } from "../asr/models";
+import { asrModels, type AsrBackend } from "../asr/models";
+import type { PairId } from "../core/pair";
 import { CAT_MODEL } from "../models/manifest";
 import { DEFAULT_ENDPOINT, formatBytes, totalBytes, type FileRef, type FileState, type Manifest } from "../models/types";
 
@@ -43,12 +44,14 @@ export function describeEndpoint(choice: EndpointChoice): string {
 /** The MimiVox proxy (workers/hf-proxy): serves pinned files from its R2 copy, else streams them from the Hub. */
 export const MIRROR_ENDPOINT = "https://hf.zafar.jp";
 
-export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice): Manifest {
-  const models = [...ASR_MODELS[backend], CAT_MODEL];
+export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice, pair: PairId): Manifest {
+  const models = [...asrModels(pair, backend), CAT_MODEL];
   return endpoint.kind === "custom" ? { endpoint: endpoint.url, models } : { fallbackEndpoint: MIRROR_ENDPOINT, models };
 }
 
 export const BACKEND_KEY = "mimivox.asr-backend.v1";
+/** The pair the user last picked; absent means the browser-language default. */
+export const PAIR_KEY = "mimivox.pair.v1";
 
 export function parseBackend(raw: string | null): AsrBackend | null {
   return raw === "webgpu" || raw === "wasm" ? raw : null;

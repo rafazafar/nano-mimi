@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CAT_MODEL } from "../models/manifest";
-import { ASR_MODELS } from "../asr/models";
+import { asrModels } from "../asr/models";
 import { totalBytes } from "../models/types";
 import {
   canStart,
@@ -15,8 +15,9 @@ import {
 } from "./state";
 import type { SourceChoice } from "./source";
 
-const manifest = { models: [...ASR_MODELS.webgpu, CAT_MODEL] };
+const manifest = { models: [...asrModels("ja-en", "webgpu"), CAT_MODEL] };
 const setup = (over: Partial<Setup> = {}): Setup => ({
+  pair: "ja-en",
   manifest,
   endpoint: { kind: "default" },
   issues: [],

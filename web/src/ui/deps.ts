@@ -1,4 +1,5 @@
 import type { AsrBackend } from "../asr/models";
+import type { PairId } from "../core/pair";
 import type { GpuResult } from "../gpu";
 import type { CapabilityIssue, StorageGrant } from "../models";
 import type { FileRef, FileState, GpuRequirements, Manifest } from "../models/types";
@@ -27,6 +28,8 @@ export interface AppEnv {
   readonly pip: DocumentPipApi | undefined;
   /** Whether the page is a secure context; the floating window needs one. */
   readonly secureContext: boolean;
+  /** `navigator.languages`: picks the UI language and the first-run pair. */
+  readonly languages: readonly string[];
 }
 
 export interface AppDeps {
@@ -36,6 +39,7 @@ export interface AppDeps {
   readonly loadEngines: (
     manifest: Manifest,
     backend: AsrBackend,
+    pair: PairId,
     onPhase: (phase: EnginePhase, state: "start" | "done") => void,
   ) => Promise<Engines>;
   readonly startSession: (options: SessionOptions) => Promise<Session>;

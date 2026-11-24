@@ -20,6 +20,7 @@ export function realDeps(): AppDeps {
       systemDark: matchMedia("(prefers-color-scheme: dark)"),
       pip: (window as { documentPictureInPicture?: AppDeps["env"]["pip"] }).documentPictureInPicture,
       secureContext: isSecureContext,
+      languages: navigator.languages,
     },
   };
 }

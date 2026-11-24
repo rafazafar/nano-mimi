@@ -1,3 +1,4 @@
+import type { PairId } from "../core/pair";
 import type { AsrBackend } from "../asr/models";
 import type { CapabilityIssue } from "../models";
 import type { Manifest } from "../models/types";
@@ -17,6 +18,8 @@ export const ENGINE_PHASES: readonly EnginePhase[] = ["vad", "asr", "mt"];
 export const pendingPhases: EnginePhases = { vad: { kind: "pending" }, asr: { kind: "pending" }, mt: { kind: "pending" } };
 
 export interface Setup {
+  /** The direction this setup downloads and loads models for. */
+  readonly pair: PairId;
   readonly manifest: Manifest;
   readonly endpoint: EndpointChoice;
   readonly issues: readonly CapabilityIssue[];

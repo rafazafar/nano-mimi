@@ -1,3 +1,4 @@
+import type { PairId } from "../core/pair";
 import type { CapabilityIssue, FileSpec, ModelSpec } from "../models";
 
 /**
@@ -68,21 +69,106 @@ export const HAAS_INT8: ModelSpec = {
   ],
 };
 
+/**
+ * Parakeet TDT 0.6B v2 for English ASR (nvidia, CC-BY-4.0), as the ONNX export by ysdede: an fp16
+ * encoder for WebGPU, an int8 one for CPU, and the fp32 fused LSTM prediction network + joint.
+ * Same TDT decode and NeMo log-mel as Haas-ja; its tables ship same-origin from `public/asr-en/`
+ * (`scripts/build_web_asr_models.py --en`).
+ */
+const EN_REPO = "ysdede/parakeet-tdt-0.6b-v2-onnx";
+const EN_REVISION = "db4a768f5795e0f508187a34241fbeeef6ebb0d3";
+
+const enTable = (path: string, size: number, sha256: string): FileSpec => ({ path, url: `/asr-en/${path}`, size, sha256 });
+
+export const PARAKEET_EN_TABLES: ModelSpec = {
+  id: "parakeet-en-tables",
+  label: "Parakeet English tokenizer and features",
+  repo: EN_REPO,
+  revision: EN_REVISION,
+  files: [
+    enTable("config.json", 326, "cb80769d4a6de64c4e52ed6ed476a660fca7e1cc6541f45d678dd2a0c76d8257"),
+    enTable("window.f32", 1600, "6a66c2c694505b41b8987c4885a618e1a32612b43a4935a208a3c9c956b22d02"),
+    enTable("fb.f32", 131584, "aa5d6310e5cb1828df972f08cbc0dc61492eb68c7fc7eb81f8fba1142422ac8f"),
+    enTable("pieces.json", 8435, "a6bab9432b42524c22542e6b76307dbd297abd219cb5ea2a9d010e9138ade4ca"),
+  ],
+};
+
+export const PARAKEET_EN_FP16: ModelSpec = {
+  id: "parakeet-en-encoder-fp16",
+  label: "Parakeet English speech recognition (WebGPU, fp16)",
+  repo: EN_REPO,
+  revision: EN_REVISION,
+  files: [{ path: "encoder-model.fp16.onnx", size: 1238960452, sha256: "ad8bb0acaec339c32ffbdedb869bd60f7103d0f6c00e56c7a2c2ab57df7462a2" }],
+  gpu: { shaderF16: true, minMaxBufferSize: 134_217_728, minMaxStorageBufferBindingSize: 134_217_728 },
+};
+
+export const PARAKEET_EN_DECODER: ModelSpec = {
+  id: "parakeet-en-decoder-fp32",
+  label: "Parakeet English decoder",
+  repo: EN_REPO,
+  revision: EN_REVISION,
+  files: [{ path: "decoder_joint-model.onnx", size: 35792059, sha256: "cbb52a07bd70ab5b67f8439d4b3cd8704b18467b4430bcacb5adabe154b8d191" }],
+};
+
+export const PARAKEET_EN_INT8: ModelSpec = {
+  id: "parakeet-en-encoder-int8",
+  label: "Parakeet English speech recognition (CPU, int8)",
+  repo: EN_REPO,
+  revision: EN_REVISION,
+  files: [{ path: "encoder-model.int8.onnx", size: 652184014, sha256: "3e0581fda6ab843888b51e56d7ee78b6d5bc3237ec113af1f732d1d5286aa155" }],
+};
+
 export type AsrBackend = "webgpu" | "wasm";
 
-/** Each backend's encoder graph and its external-data sidecar; the decoder is HAAS_DECODER for both. */
-export const ASR_ENCODER: Readonly<Record<AsrBackend, { readonly model: ModelSpec; readonly path: string; readonly data: string }>> = {
-  webgpu: { model: HAAS_FP16, path: "fp16/encoder.onnx", data: "fp16/encoder.onnx.data" },
-  wasm: { model: HAAS_INT8, path: "int8/encoder.onnx", data: "int8/encoder.onnx.data" },
+/** One encoder graph, with its external-data sidecar when the export has one. */
+export interface EncoderFile {
+  readonly model: ModelSpec;
+  readonly path: string;
+  readonly data?: string;
+}
+
+/** Everything one direction's recognizer loads: front-end tables, an encoder per backend, the decoder (wasm EP on both). */
+export interface AsrModelSet {
+  readonly tables: ModelSpec;
+  readonly encoder: Readonly<Record<AsrBackend, EncoderFile>>;
+  readonly decoder: ModelSpec;
+}
+
+/** The recognizer for each pair's *source* language. */
+export const ASR_SETS: Readonly<Record<PairId, AsrModelSet>> = {
+  "ja-en": {
+    tables: HAAS_TABLES,
+    encoder: {
+      webgpu: { model: HAAS_FP16, path: "fp16/encoder.onnx", data: "fp16/encoder.onnx.data" },
+      wasm: { model: HAAS_INT8, path: "int8/encoder.onnx", data: "int8/encoder.onnx.data" },
+    },
+    decoder: HAAS_DECODER,
+  },
+  "en-ja": {
+    tables: PARAKEET_EN_TABLES,
+    encoder: {
+      webgpu: { model: PARAKEET_EN_FP16, path: "encoder-model.fp16.onnx" },
+      wasm: { model: PARAKEET_EN_INT8, path: "encoder-model.int8.onnx" },
+    },
+    decoder: PARAKEET_EN_DECODER,
+  },
 };
 
-/** What each backend downloads. */
-export const ASR_MODELS: Readonly<Record<AsrBackend, readonly ModelSpec[]>> = {
-  webgpu: [HAAS_TABLES, HAAS_FP16, HAAS_DECODER],
-  wasm: [HAAS_TABLES, HAAS_INT8, HAAS_DECODER],
-};
+/** What one pair's recognizer downloads on one backend. */
+export function asrModels(pair: PairId, backend: AsrBackend): readonly ModelSpec[] {
+  const set = ASR_SETS[pair];
+  return [set.tables, set.encoder[backend].model, set.decoder];
+}
 
-/** WebGPU when W3's capability check found nothing wrong for the fp16 model, otherwise the int8 CPU path. */
+/** Every ASR model the app can download, for the R2 mirror seed. */
+export const ALL_ASR_MODELS: readonly ModelSpec[] = Object.values(ASR_SETS).flatMap((set) => [
+  set.tables,
+  set.encoder.webgpu.model,
+  set.encoder.wasm.model,
+  set.decoder,
+]);
+
+/** WebGPU when W3's capability check found nothing wrong for the fp16 models, otherwise the int8 CPU path. */
 export function asrBackend(issues: readonly CapabilityIssue[]): AsrBackend {
   return issues.length === 0 ? "webgpu" : "wasm";
 }
