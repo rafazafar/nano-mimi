@@ -1,7 +1,8 @@
 """Export golden fixtures for the browser port from the real Python functions.
 
 Runs the production code over the corpus in ``web_fixture_corpus.py`` and writes
-input -> output JSON under ``web/fixtures/core`` (one file per function family)
+input -> output JSON under ``web/fixtures/core`` (one file per function family),
+``web/fixtures/mt`` (rendered CAT prompts and their token ids)
 and ``web/fixtures/vad``. Output is deterministic: sorted keys, stable case order.
 
     uv run python scripts/export_web_fixtures.py
@@ -269,6 +270,32 @@ def export_core() -> None:
                 {"name": name, "input": ops, "output": run_cache_ops(ops)}
                 for name, ops in corpus.CACHE_SCENARIOS.items()
             ],
+        },
+    )
+
+    def prompt_ids(c: dict[str, Any]) -> dict[str, Any]:
+        rendered = render_chat(c)["prompt"]
+        # mlx_lm.stream_generate's rule for string prompts.
+        bos = tokenizer.bos_token
+        add_special = bos is None or not rendered.startswith(bos)
+        return {
+            "prompt": rendered,
+            "input_ids": tokenizer.encode(rendered, add_special_tokens=add_special),
+        }
+
+    id_inputs = [*corpus.CHAT_MESSAGES] + [
+        {"ja": ja, "context": []} for ja in [*corpus.PROMPT_AND_TOKENS, *corpus.TOKEN_ID_EXTRA]
+    ]
+    write_json(
+        FIXTURES / "mt" / "prompt_ids.json",
+        {
+            "family": "mt",
+            "functions": {"prompt_ids": cases(id_inputs, prompt_ids)},
+            "cat": {
+                "model": CAT_MODEL_ID,
+                "snapshot": snapshot,
+                "eos_token_id": tokenizer.eos_token_id,
+            },
         },
     )
 
