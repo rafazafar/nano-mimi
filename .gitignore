@@ -31,3 +31,5 @@ macos/**/DerivedData/
 # Stray local artifacts (defense against recurrence)
 /path/
 server.log
+web/.models/
+web/.bench/
