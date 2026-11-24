@@ -44,13 +44,13 @@ test.describe("a Japanese browser", () => {
     await expect(role(page, "health-label")).toHaveText("4 秒遅れ");
   });
 
-  test("keeps a stored Japanese-to-English choice and the Japanese UI", async ({ page }) => {
+  test("keeps a stored Japanese-to-English choice, with the UI in English like its captions", async ({ page }) => {
     await page.addInitScript((key) => localStorage.setItem(key, "ja-en"), PAIR_KEY);
     await openHarness(page, { lang: "ja-JP" });
     await expectAppState(page, "needs-setup");
     await expect(pill(page)).toHaveText("JA → EN");
     await expect(role(page, "speech-model")).toContainText("Haas-ja");
-    await expect(page.locator(".setup-head h1")).toHaveText("ライブ字幕のセットアップ");
+    await expect(page.locator(".setup-head h1")).toHaveText("Set up live captions");
   });
 });
 
@@ -92,7 +92,8 @@ test.describe("the direction menu", () => {
     await expectAppState(page, "needs-setup");
     await expect(role(page, "speech-model")).toContainText("Haas-ja");
     expect(await page.evaluate((key) => localStorage.getItem(key), PAIR_KEY)).toBe("ja-en");
-    await expect(page.locator(".setup-head h1")).toHaveText("ライブ字幕のセットアップ");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.locator(".setup-head h1")).toHaveText("Set up live captions");
 
     await page.reload();
     await expect(pill(page)).toHaveText("JA → EN");
@@ -110,7 +111,7 @@ test.describe("the direction menu", () => {
     await expectAppState(page, "loading-engines");
     await expect(pill(page)).toHaveText("EN → JA");
     await expect(pill(page)).toBeDisabled();
-    await expect(pill(page)).toHaveAttribute("title", /download or model load/);
+    await expect(pill(page)).toHaveAttribute("title", /ダウンロード|読み込み/);
     await page.evaluate(() => {
       const engines = window.__harness!.engines;
       for (const phase of ["vad", "asr", "mt"] as const) {
@@ -122,7 +123,7 @@ test.describe("the direction menu", () => {
     await expectAppState(page, "ready");
     await expect(page.locator(".row:not(.draft)")).toHaveCount(0);
     await expect(pill(page)).toBeEnabled();
-    await expect(page.locator(".empty-body")).toContainText("speak English");
+    await expect(page.locator(".empty-body")).toContainText("英語で話してください");
   });
 
   test("is disabled with a reason while captions run, and when downloading", async ({ page }) => {
@@ -210,6 +211,6 @@ test.describe("per-pair glossary", () => {
     await pill(page).click();
     await item(page, "ja-en").click();
     await expect(page.locator(".entry .entry-src")).toHaveValue("ミミ");
-    await expect(role(page, "glossary-heads")).toContainText("日本語（認識結果）");
+    await expect(role(page, "glossary-heads")).toContainText("Japanese (as heard)");
   });
 });

@@ -32,16 +32,14 @@ describe("catalogs", () => {
 });
 
 describe("pickLocale", () => {
-  it("follows the browser's first language", () => {
-    expect(pickLocale(["ja-JP", "en-US"], "")).toBe("ja");
-    expect(pickLocale(["ja"], "")).toBe("ja");
-    expect(pickLocale(["en-US", "ja"], "")).toBe("en");
-    expect(pickLocale([], "")).toBe("en");
+  it("speaks the captions' language", () => {
+    expect(pickLocale("en-ja", "")).toBe("ja");
+    expect(pickLocale("ja-en", "")).toBe("en");
   });
 
   it("lets ?lang pin either language and ignores other values", () => {
-    expect(pickLocale(["ja-JP"], "?lang=en")).toBe("en");
-    expect(pickLocale(["en-US"], "?lang=ja")).toBe("ja");
-    expect(pickLocale(["ja-JP"], "?lang=fr")).toBe("ja");
+    expect(pickLocale("en-ja", "?lang=en")).toBe("en");
+    expect(pickLocale("ja-en", "?lang=ja")).toBe("ja");
+    expect(pickLocale("en-ja", "?lang=fr")).toBe("ja");
   });
 });

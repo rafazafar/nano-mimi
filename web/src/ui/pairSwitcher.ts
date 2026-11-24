@@ -23,6 +23,8 @@ export class PairSwitcher {
   private readonly items = new Map<PairId, HTMLButtonElement>();
   private current: PairId = "ja-en";
   private open = false;
+  /** `aria-disabled`, not `disabled`, so the button keeps focus while a switch reloads the app. */
+  private locked = false;
 
   constructor(
     private readonly m: Messages,
@@ -65,7 +67,8 @@ export class PairSwitcher {
     this.code.textContent = pairCode(pair);
     setAttr(this.trigger, "aria-label", this.m.pair.triggerLabel(pairCode(pair)));
     const reason = lock === "live" ? this.m.pair.disabledLive : lock === "busy" ? this.m.pair.disabledBusy : null;
-    this.trigger.disabled = lock !== null;
+    this.locked = lock !== null;
+    setAttr(this.trigger, "aria-disabled", this.locked ? "true" : null);
     setAttr(this.trigger, "title", reason ?? this.m.pair.menuLabel);
     if (lock !== null && this.open) this.close(false);
     for (const [id, item] of this.items) setAttr(item, "aria-checked", String(id === pair));
@@ -85,7 +88,7 @@ export class PairSwitcher {
   }
 
   private show(focus: PairId | "last"): void {
-    if (this.trigger.disabled) return;
+    if (this.locked) return;
     this.open = true;
     setHidden(this.menu, false);
     setAttr(this.trigger, "aria-expanded", "true");

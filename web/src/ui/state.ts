@@ -69,7 +69,6 @@ export type AppAction =
   | { readonly type: "engines-failed"; readonly message: string }
   | { readonly type: "retry" }
   /** The user picked the other direction. The app stored it and starts over, checking the new pair's models. */
-  | { readonly type: "pair-switch-requested" }
   | { readonly type: "source-chosen"; readonly source: SourceChoice }
   | { readonly type: "source-rejected"; readonly message: string }
   | { readonly type: "start-requested" }
@@ -127,8 +126,6 @@ export function reduceApp(state: AppState, action: AppAction): AppState {
     case "retry":
       if (state.kind !== "error") return state;
       return state.retry.target === "boot" ? initialAppState : loadingEngines(state.retry.setup);
-    case "pair-switch-requested":
-      return state.kind === "needs-setup" || state.kind === "ready" || state.kind === "error" ? initialAppState : state;
     case "source-chosen":
       return state.kind === "ready" ? { ...state, source: action.source, sourceError: null } : state;
     case "source-rejected":

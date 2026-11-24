@@ -1,8 +1,9 @@
 import type { AsrBackend } from "../asr/models";
-import { isJapanese, type PairId } from "../core/pair";
+import type { PairId } from "../core/pair";
 import type { CapabilityIssue } from "../models";
 import { en } from "./i18n.en";
 import { ja } from "./i18n.ja";
+import { targetLang } from "./pairLang";
 
 export type Locale = "en" | "ja";
 
@@ -236,9 +237,12 @@ export function messagesFor(locale: Locale): Messages {
   return catalogs[locale];
 }
 
-/** `?lang=en|ja` wins, so a page can be pinned either way; otherwise the browser's first language decides. */
-export function pickLocale(languages: readonly string[], search: string): Locale {
+/**
+ * `?lang=en|ja` wins, so a page can be pinned either way. Otherwise the UI speaks the captions' language:
+ * whoever reads Japanese captions reads Japanese.
+ */
+export function pickLocale(pair: PairId, search: string): Locale {
   const forced = new URLSearchParams(search).get("lang");
   if (forced === "en" || forced === "ja") return forced;
-  return isJapanese(languages) ? "ja" : "en";
+  return targetLang(pair);
 }

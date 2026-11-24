@@ -174,32 +174,21 @@ describe("derived", () => {
   });
 });
 
-describe("pair-switch-requested", () => {
-  const switching: AppAction = { type: "pair-switch-requested" };
+describe("canSwitchPair", () => {
   const failed = (): AppState => run([{ type: "boot-failed", message: "x" }]);
   const needsSetup = (): AppState => run([{ type: "checked", setup: setup() }]);
   const downloading = (): AppState => run([{ type: "download-started" }], needsSetup());
   const loading = (): AppState => run([{ type: "checked", setup: downloaded }]);
   const running = (): AppState => run([{ type: "start-requested" }, { type: "session-started" }], readyState());
 
-  it("starts over from setup, ready and error", () => {
-    for (const from of [needsSetup(), readyState(), failed(), run([{ type: "engines-failed", message: "x" }], loading())]) {
-      expect(reduceApp(from, switching)).toBe(initialAppState);
-      expect(canSwitchPair(from)).toBe(true);
-    }
+  it("allows a switch from setup, ready and error", () => {
+    for (const from of [needsSetup(), readyState(), failed(), run([{ type: "engines-failed", message: "x" }], loading())]) expect(canSwitchPair(from)).toBe(true);
   });
 
-  it("is dropped while a download, a load or a session holds the current pair", () => {
+  it("refuses one while a download, a load or a session holds the current pair", () => {
     for (const from of [initialAppState, downloading(), loading(), run([{ type: "start-requested" }], readyState()), running(), run([{ type: "stop-requested" }], running())]) {
-      expect(reduceApp(from, switching)).toBe(from);
       expect(canSwitchPair(from)).toBe(false);
     }
-  });
-
-  it("goes on to the usual checked transitions", () => {
-    const afterSwitch = reduceApp(readyState(), switching);
-    expect(reduceApp(afterSwitch, { type: "checked", setup: downloaded }).kind).toBe("loading-engines");
-    expect(reduceApp(afterSwitch, { type: "checked", setup: setup({ pair: "en-ja" }) }).kind).toBe("needs-setup");
   });
 });
 
