@@ -10,6 +10,8 @@ export interface StoredEntry {
  */
 export interface BlobStore {
   list(dir: string): Promise<readonly StoredEntry[]>;
+  /** Names of the subdirectories of `dir` ("" is the root). */
+  listDirs(dir: string): Promise<readonly string[]>;
   write(dir: string, name: string, data: Uint8Array): Promise<void>;
   read(dir: string, name: string): Promise<Blob>;
   remove(dir: string, name: string): Promise<void>;
@@ -25,7 +27,7 @@ function isNotFound(e: unknown): boolean {
 export class OpfsBlobStore implements BlobStore {
   private async dirHandle(dir: string, create: boolean): Promise<FileSystemDirectoryHandle | null> {
     let handle = await navigator.storage.getDirectory();
-    for (const seg of [ROOT, ...dir.split("/")]) {
+    for (const seg of [ROOT, ...dir.split("/").filter((s) => s !== "")]) {
       try {
         handle = await handle.getDirectoryHandle(seg, { create });
       } catch (e) {
@@ -46,6 +48,14 @@ export class OpfsBlobStore implements BlobStore {
       }
     }
     return out.sort((a, b) => (a.name < b.name ? -1 : 1));
+  }
+
+  async listDirs(dir: string): Promise<readonly string[]> {
+    const handle = await this.dirHandle(dir, false);
+    if (handle === null) return [];
+    const out: string[] = [];
+    for await (const entry of handle.values()) if (entry.kind === "directory") out.push(entry.name);
+    return out.sort();
   }
 
   async write(dir: string, name: string, data: Uint8Array): Promise<void> {
@@ -97,6 +107,13 @@ export class MemoryBlobStore implements BlobStore {
       .sort((a, b) => (a.name < b.name ? -1 : 1));
   }
 
+  async listDirs(dir: string): Promise<readonly string[]> {
+    const prefix = dir === "" ? "" : `${dir}/`;
+    const names = new Set<string>();
+    for (const d of this.dirs.keys()) if (d.startsWith(prefix)) names.add(d.slice(prefix.length).split("/")[0]!);
+    return [...names].sort();
+  }
+
   async write(dir: string, name: string, data: Uint8Array): Promise<void> {
     const d = this.dirs.get(dir) ?? new Map<string, Uint8Array>();
     d.set(name, data.slice());
@@ -114,6 +131,6 @@ export class MemoryBlobStore implements BlobStore {
   }
 
   async removeDir(dir: string): Promise<void> {
-    this.dirs.delete(dir);
+    for (const d of [...this.dirs.keys()]) if (d === dir || d.startsWith(`${dir}/`)) this.dirs.delete(d);
   }
 }

@@ -1,6 +1,6 @@
 export { OpfsBlobStore, MemoryBlobStore, type BlobStore } from "./blob-store";
 export { aggregateRequirements, checkCapabilities, type CapabilityIssue, type GpuLike } from "./capability";
-export { ModelStore, type ModelStoreOptions, type StorageGrant } from "./model-store";
+export { ModelStore, pruneUnknownModels, type ModelStoreOptions, type StorageGrant } from "./model-store";
 export {
   DEFAULT_ENDPOINT,
   StorageQuotaError,

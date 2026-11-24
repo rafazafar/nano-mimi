@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { MemoryBlobStore } from "./blob-store";
 import { aggregateRequirements, checkCapabilities, type GpuLike } from "./capability";
-import { ModelStore } from "./model-store";
+import { ModelStore, pruneUnknownModels } from "./model-store";
 import { Sha256 } from "./sha256";
 import { StorageQuotaError, fileUrl, parseManifest, type FileRef, type FileState, type Manifest } from "./types";
 
@@ -225,6 +225,23 @@ describe("ModelStore", () => {
     const store = t.make();
     await store.ensureAll();
     expect(store.storageGrant).toBe("persistent");
+  });
+});
+
+describe("pruneUnknownModels", () => {
+  it("deletes models a release dropped and keeps the ones still in use, verified or not", async () => {
+    const t = setup();
+    await t.make().ensureAll();
+    await t.fs.write("old-model/onnx%2Fmodel.onnx", "000000", new Uint8Array(8));
+    await t.fs.write("old-model/onnx%2Fmodel.onnx", "verified", new Uint8Array(2));
+    await t.fs.write("other-backend/a", "000000", new Uint8Array(4));
+
+    await pruneUnknownModels(t.fs, ["m", "other-backend"]);
+
+    expect(await t.fs.listDirs("")).toEqual(["m", "other-backend"]);
+    const store = t.make();
+    await store.refresh();
+    expect(store.allReady()).toBe(true);
   });
 });
 

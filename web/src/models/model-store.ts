@@ -286,6 +286,12 @@ export class ModelStore {
   }
 }
 
+/** Deletes downloaded models the app no longer uses, such as one a release replaced. */
+export async function pruneUnknownModels(store: BlobStore, knownIds: readonly string[]): Promise<void> {
+  const known = new Set(knownIds);
+  for (const id of await store.listDirs("")) if (!known.has(id)) await store.removeDir(id);
+}
+
 function refOf(model: ModelSpec, file: FileSpec): FileRef {
   return { modelId: model.id, path: file.path };
 }
