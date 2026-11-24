@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-test("shell reports a hardware WebGPU adapter", async ({ page }) => {
+test("the app's diagnostics panel reports a hardware WebGPU adapter", async ({ page }) => {
   await page.goto("/");
+  const diagnostics = page.locator('[data-role="diagnostics"]');
+  await expect(diagnostics).not.toHaveAttribute("open", "");
+  await diagnostics.locator("summary").click();
+  await expect(diagnostics).toHaveAttribute("open", "");
+
   const status = page.locator("#gpu-status");
   await expect(status).not.toHaveAttribute("data-state", "pending");
   await expect(status).toHaveAttribute("data-state", "ready");
