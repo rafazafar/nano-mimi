@@ -1,5 +1,7 @@
-import { ASR_MODELS, type AsrBackend } from "../asr/models";
+import { asrModels, type AsrBackend } from "../asr/models";
+import type { PairId } from "../core/pair";
 import { CAT_MODEL } from "../models/manifest";
+import type { Messages } from "./i18n";
 import { DEFAULT_ENDPOINT, formatBytes, totalBytes, type FileRef, type FileState, type Manifest } from "../models/types";
 
 export type EndpointChoice =
@@ -26,16 +28,16 @@ export function parseEndpointParam(search: string): EndpointChoice {
 
 const RAW_ENDPOINT_SHOWN = 80;
 
-export function describeEndpoint(choice: EndpointChoice): string {
+export function describeEndpoint(choice: EndpointChoice, m: Messages): string {
   const fallback = new URL(DEFAULT_ENDPOINT).host;
   switch (choice.kind) {
     case "default":
-      return `Downloads come from ${fallback}.`;
+      return m.setup.endpoint.standard(fallback);
     case "custom":
-      return `Downloads come from ${choice.url}, as the endpoint in the address asks.`;
+      return m.setup.endpoint.custom(choice.url);
     case "invalid": {
       const raw = choice.raw.length > RAW_ENDPOINT_SHOWN ? `${choice.raw.slice(0, RAW_ENDPOINT_SHOWN)}...` : choice.raw;
-      return `The endpoint in the address (${raw}) is not a plain http or https address, so it was ignored. Downloads come from ${fallback}.`;
+      return m.setup.endpoint.invalid(raw, fallback);
     }
   }
 }
@@ -43,12 +45,14 @@ export function describeEndpoint(choice: EndpointChoice): string {
 /** The MimiVox proxy (workers/hf-proxy): serves pinned files from its R2 copy, else streams them from the Hub. */
 export const MIRROR_ENDPOINT = "https://hf.zafar.jp";
 
-export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice): Manifest {
-  const models = [...ASR_MODELS[backend], CAT_MODEL];
+export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice, pair: PairId): Manifest {
+  const models = [...asrModels(pair, backend), CAT_MODEL];
   return endpoint.kind === "custom" ? { endpoint: endpoint.url, models } : { fallbackEndpoint: MIRROR_ENDPOINT, models };
 }
 
 export const BACKEND_KEY = "mimivox.asr-backend.v1";
+/** The pair the user last picked; absent means the browser-language default. */
+export const PAIR_KEY = "mimivox.pair.v1";
 
 export function parseBackend(raw: string | null): AsrBackend | null {
   return raw === "webgpu" || raw === "wasm" ? raw : null;
@@ -56,10 +60,10 @@ export function parseBackend(raw: string | null): AsrBackend | null {
 
 export const fileKey = (ref: FileRef): string => `${ref.modelId}\u0000${ref.path}`;
 
-export function setupActionLabel(setup: { readonly totalBytes: number; readonly missingBytes: number }): string {
-  if (setup.missingBytes <= 0) return "Load models";
-  if (setup.missingBytes < setup.totalBytes) return `Resume download, ${formatBytes(setup.missingBytes)} left`;
-  return `Download ${formatBytes(setup.totalBytes)}`;
+export function setupActionLabel(setup: { readonly totalBytes: number; readonly missingBytes: number }, m: Messages): string {
+  if (setup.missingBytes <= 0) return m.setup.loadModels;
+  if (setup.missingBytes < setup.totalBytes) return m.setup.resume(formatBytes(setup.missingBytes));
+  return m.setup.download(formatBytes(setup.totalBytes));
 }
 
 export interface FileProgress {

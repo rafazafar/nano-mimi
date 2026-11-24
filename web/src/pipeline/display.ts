@@ -2,6 +2,8 @@ import { translationCacheKey, type TranslationCache } from "../core/cache";
 import type { TranslationContext } from "../core/context";
 import type { Glossary } from "../core/glossary";
 import { isSplitContinuation } from "../core/revision";
+import type { PairId } from "../core/pair";
+import { strategyFor, type PairStrategy } from "../core/strategy";
 import { isMostlyEnglish, rstripChars } from "../core/text";
 import type { ContextTurn, EnText, JaText } from "../core/types";
 import { asEnText, asJaText } from "../core/types";
@@ -56,6 +58,8 @@ export interface DisplayDeps {
   readonly context: TranslationContext;
   readonly coordinator: PartialEnCoordinator;
   readonly glossary: () => Glossary;
+  /** Defaults to `ja-en`. */
+  readonly pair?: PairId;
   readonly clock: Clock;
   readonly emit: (event: PipelineEvent) => void;
   /** Called after every input has been handled. */
@@ -72,6 +76,7 @@ export interface DisplayDeps {
  */
 export class DisplayStage {
   readonly #deps: DisplayDeps;
+  readonly #strategy: PairStrategy;
   #tail: Promise<void> = Promise.resolve();
   #queued: FinalInput[] = [];
   readonly #reached = new Map<FinalInput, () => void>();
@@ -82,6 +87,7 @@ export class DisplayStage {
 
   constructor(deps: DisplayDeps) {
     this.#deps = deps;
+    this.#strategy = strategyFor(deps.pair ?? "ja-en");
   }
 
   /** Audio-clock ends of finals waiting or being translated, for the backlog. */
@@ -152,7 +158,7 @@ export class DisplayStage {
       merge = await this.#tryMerge(input);
       if (merge !== null) ({ translated, line } = merge);
       else {
-        line = prepareLine(input.text, this.#deps.glossary());
+        line = prepareLine(input.text, this.#deps.glossary(), this.#strategy);
         emit({ kind: "translating", id, timelineS: input.timelineS, ja: input.text });
         translated = await this.#translateLine(line, context.pairs(), id);
       }
@@ -207,8 +213,8 @@ export class DisplayStage {
 
   async #tryMerge(input: FinalInput): Promise<Merge | null> {
     const prev = this.#prev;
-    if (prev === null || !this.#continues(prev, input)) return null;
-    const joined = prepareLine(asJaText(prev.ja + input.text), this.#deps.glossary());
+    if (!this.#strategy.splitRepair || prev === null || !this.#continues(prev, input)) return null;
+    const joined = prepareLine(asJaText(prev.ja + input.text), this.#deps.glossary(), this.#strategy);
     this.#deps.emit({ kind: "revising", targetId: prev.id, ja: joined.plain });
     const translated = await this.#translateLine(joined, prev.contextBefore, prev.id);
     if (translated.en === "") {
@@ -226,7 +232,7 @@ export class DisplayStage {
   async #translateLine(line: Line, turns: readonly ContextTurn[], rowId: RowId): Promise<Translated> {
     const { gpu, mt, cache, emit } = this.#deps;
     const { plain, sent } = line;
-    if (isMostlyEnglish(plain)) return { en: asEnText(rstripChars(sent, "。")), source: "passthrough" };
+    if (this.#strategy.source.passthrough(plain)) return { en: asEnText(rstripChars(sent, "。")), source: "passthrough" };
     const hit = cache.lookup(sent);
     if (hit !== undefined) return { en: hit, source: "cache" };
 

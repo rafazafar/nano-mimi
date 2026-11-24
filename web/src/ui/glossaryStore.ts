@@ -1,29 +1,30 @@
 import { isAsrFix, type Glossary } from "../core/glossary";
+import type { PairId } from "../core/pair";
 import { readItem, writeItem, type KeyValueStorage } from "./storage";
 
+/** The Japanese-speech glossary keeps the original key, so entries saved before the second direction existed stay. */
 export const GLOSSARY_KEY = "mimivox.glossary.v1";
-const MAX_ENTRIES = 500;
-const MAX_FIELD_CHARS = 200;
+export const EN_JA_GLOSSARY_KEY = "mimivox.glossary.en-ja.v1";
+export const MAX_ENTRIES = 500;
+export const MAX_FIELD_CHARS = 200;
+
+/** Each direction has its own glossary: a Japanese-heard entry means nothing for English speech. */
+export const glossaryKey = (pair: PairId): string => (pair === "ja-en" ? GLOSSARY_KEY : EN_JA_GLOSSARY_KEY);
 
 export interface GlossaryEntry {
   readonly source: string;
   readonly target: string;
 }
 
-/** A Japanese target rewrites how ASR spelled a word; any other target fixes the English wording. */
+/**
+ * For Japanese speech, a Japanese target rewrites how ASR spelled a word and any other target fixes the
+ * English wording. For English speech every entry is a term: its Japanese target is the caption wording.
+ */
 export type EntryKind = "term" | "asr-fix";
 
-export const entryKind = (entry: GlossaryEntry): EntryKind => (isAsrFix(entry.target) ? "asr-fix" : "term");
+export const entryKind = (entry: GlossaryEntry, pair: PairId): EntryKind => (pair === "ja-en" && isAsrFix(entry.target) ? "asr-fix" : "term");
 
 export type EntryError = "empty-source" | "empty-target" | "duplicate-source" | "too-long" | "full";
-
-export const ENTRY_ERROR_TEXT: Readonly<Record<EntryError, string>> = {
-  "empty-source": "Enter the Japanese to look for.",
-  "empty-target": "Enter what it should become.",
-  "duplicate-source": "That source is already in the glossary.",
-  "too-long": `Keep each side under ${MAX_FIELD_CHARS} characters.`,
-  full: `The glossary holds at most ${MAX_ENTRIES} entries.`,
-};
 
 function clean(entry: GlossaryEntry): GlossaryEntry {
   return { source: entry.source.trim(), target: entry.target.trim() };
@@ -88,8 +89,11 @@ export class GlossaryStore {
   private readonly listeners = new Set<() => void>();
   private saved = true;
 
-  constructor(private readonly storage: KeyValueStorage) {
-    this.list = parseStoredGlossary(readItem(storage, GLOSSARY_KEY));
+  constructor(
+    private readonly storage: KeyValueStorage,
+    readonly pair: PairId,
+  ) {
+    this.list = parseStoredGlossary(readItem(storage, glossaryKey(pair)));
     this.map = toGlossary(this.list);
   }
 
@@ -136,7 +140,7 @@ export class GlossaryStore {
   private commit(next: readonly GlossaryEntry[]): void {
     this.list = next;
     this.map = toGlossary(next);
-    this.saved = writeItem(this.storage, GLOSSARY_KEY, serializeGlossary(next));
+    this.saved = writeItem(this.storage, glossaryKey(this.pair), serializeGlossary(next));
     for (const listener of this.listeners) listener();
   }
 }

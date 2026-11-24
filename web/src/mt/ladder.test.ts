@@ -167,3 +167,48 @@ describe("translateWithRetries", () => {
     expect(result.promptLeak).toBe(true);
   });
 });
+
+describe("translateWithRetries for en-ja", () => {
+  const enJa = { ...options, pair: "en-ja" as const };
+
+  it("asks for Japanese with the official prompt, unbanned, and keeps Japanese output", async () => {
+    const fake = scripted("明日話します。");
+    const result = await translateWithRetries(asJaText("We will talk tomorrow."), [], fake.generate, enJa);
+    expect(result.en).toBe("明日話します。");
+    expect(fake.requests[0]).toMatchObject({
+      messages: [{ role: "user", content: "Translate the following English text into Japanese.\n\nWe will talk tomorrow." }],
+      banSourceScript: false,
+    });
+  });
+
+  it("bans the Japanese script for ja-en only", async () => {
+    const fake = scripted("Yes");
+    await translateWithRetries(asJaText("はい。"), [], fake.generate, options);
+    expect(fake.requests[0]?.banSourceScript).toBe(true);
+  });
+
+  it("retranslates without context when the reply echoes a context line", async () => {
+    const fake = scripted("報告ありがとう。", "次の項目です。");
+    const result = await translateWithRetries(
+      asJaText("Next item."),
+      [turn("Thanks for the report.", "報告ありがとう。")],
+      fake.generate,
+      enJa,
+    );
+    expect(result.en).toBe("次の項目です。");
+    expect(result.attempts.map((a) => a.reason)).toEqual(["first", "no-context"]);
+  });
+
+  it("does not retry over numbers", async () => {
+    const fake = scripted("会議は三時です。");
+    const result = await translateWithRetries(asJaText("The meeting is at 3 PM."), [], fake.generate, enJa);
+    expect(result.attempts).toHaveLength(1);
+    expect(result.numbersMismatch).toBe(false);
+  });
+
+  it("applies the preview cap", async () => {
+    const fake = scripted("あ");
+    await translateWithRetries(asJaText("a".repeat(400)), [], fake.generate, { ...enJa, preview: true });
+    expect(fake.requests[0]?.maxTokens).toBe(PREVIEW_MAX_TOKENS);
+  });
+});

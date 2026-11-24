@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ASR_MODELS, HAAS_DECODER, HAAS_FP16, HAAS_INT8, HAAS_TABLES } from "../asr/models";
+import { asrModels, HAAS_DECODER, PARAKEET_EN_DECODER, PARAKEET_EN_FP16, PARAKEET_EN_TABLES, HAAS_FP16, HAAS_INT8, HAAS_TABLES } from "../asr/models";
 import { CAT_MODEL } from "../models/manifest";
 import type { FileState } from "../models/types";
+import { en } from "./i18n.en";
 import { BACKEND_KEY, MIRROR_ENDPOINT, buildManifest, downloadProgress, fileKey, parseBackend, describeEndpoint, parseEndpointParam, setupActionLabel } from "./setupModel";
 
 describe("parseEndpointParam", () => {
@@ -29,16 +30,20 @@ describe("parseEndpointParam", () => {
 
 describe("buildManifest", () => {
   it("lists the backend's ASR files and the translator; the mirror backs the default endpoint, not a custom one", () => {
-    expect(buildManifest("webgpu", { kind: "default" })).toEqual({
+    expect(buildManifest("webgpu", { kind: "default" }, "ja-en")).toEqual({
       fallbackEndpoint: MIRROR_ENDPOINT,
       models: [HAAS_TABLES, HAAS_FP16, HAAS_DECODER, CAT_MODEL],
     });
-    expect(buildManifest("wasm", { kind: "custom", url: "http://localhost:9" })).toEqual({
+    expect(buildManifest("wasm", { kind: "custom", url: "http://localhost:9" }, "ja-en")).toEqual({
       endpoint: "http://localhost:9",
       models: [HAAS_TABLES, HAAS_INT8, HAAS_DECODER, CAT_MODEL],
     });
-    expect(buildManifest("webgpu", { kind: "invalid", raw: "x" }).endpoint).toBeUndefined();
-    expect(buildManifest("wasm", { kind: "default" }).models).toEqual([...ASR_MODELS.wasm, CAT_MODEL]);
+    expect(buildManifest("webgpu", { kind: "invalid", raw: "x" }, "ja-en").endpoint).toBeUndefined();
+    expect(buildManifest("wasm", { kind: "default" }, "ja-en").models).toEqual([...asrModels("ja-en", "wasm"), CAT_MODEL]);
+  });
+
+  it("swaps in the English recognizer for en-ja and keeps the same translator", () => {
+    expect(buildManifest("webgpu", { kind: "default" }, "en-ja").models).toEqual([PARAKEET_EN_TABLES, PARAKEET_EN_FP16, PARAKEET_EN_DECODER, CAT_MODEL]);
   });
 });
 
@@ -53,7 +58,7 @@ describe("parseBackend", () => {
 });
 
 describe("downloadProgress", () => {
-  const manifest = buildManifest("webgpu", { kind: "default" });
+  const manifest = buildManifest("webgpu", { kind: "default" }, "ja-en");
   const states = (entries: [string, string, FileState][]): Map<string, FileState> =>
     new Map(entries.map(([modelId, path, state]) => [fileKey({ modelId, path }), state]));
 
@@ -103,29 +108,29 @@ describe("downloadProgress", () => {
 
 describe("setupActionLabel", () => {
   it("offers to load when everything is on disk", () => {
-    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 0 })).toBe("Load models");
+    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 0 }, en)).toBe("Load models");
   });
 
   it("offers to resume when some is on disk, with what is left", () => {
-    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 150_000_000 })).toMatch(/^Resume download, .+ left$/);
+    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 150_000_000 }, en)).toMatch(/^Resume download, .+ left$/);
   });
 
   it("offers a full download when nothing is on disk, with the total", () => {
-    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 600_000_000 })).toMatch(/^Download \d/);
+    expect(setupActionLabel({ totalBytes: 600_000_000, missingBytes: 600_000_000 }, en)).toMatch(/^Download \d/);
   });
 });
 
 describe("describeEndpoint", () => {
   it("names the default host", () => {
-    expect(describeEndpoint({ kind: "default" })).toBe("Downloads come from huggingface.co.");
+    expect(describeEndpoint({ kind: "default" }, en)).toBe("Downloads come from huggingface.co.");
   });
 
   it("names a custom endpoint", () => {
-    expect(describeEndpoint({ kind: "custom", url: "https://mirror.example.com/hf" })).toContain("https://mirror.example.com/hf");
+    expect(describeEndpoint({ kind: "custom", url: "https://mirror.example.com/hf" }, en)).toContain("https://mirror.example.com/hf");
   });
 
   it("says an unusable endpoint was ignored and shortens a long one", () => {
-    const text = describeEndpoint({ kind: "invalid", raw: `javascript:${"x".repeat(300)}` });
+    const text = describeEndpoint({ kind: "invalid", raw: `javascript:${"x".repeat(300)}` }, en);
     expect(text).toContain("was ignored");
     expect(text).toContain("huggingface.co");
     expect(text.length).toBeLessThan(260);

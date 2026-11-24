@@ -5,7 +5,7 @@
 //   node scripts/seed_model_mirror.mjs [--web <dir>] [--dry-run] [--keep-uploader]
 //
 // The model list comes from the web app itself: <web>/src/models/manifest.ts
-// (DEFAULT_MANIFEST) plus ASR_MODELS from <web>/src/asr/models.ts when exported.
+// (DEFAULT_MANIFEST) plus ALL_ASR_MODELS from <web>/src/asr/models.ts (every pair and backend).
 // <web> defaults to ./web. Only files whose revision is a 40-hex commit sha are
 // copied. Each is skipped when R2 already holds an object of the manifest size,
 // and is checked against the manifest sha256 before it is committed to R2.
@@ -57,7 +57,7 @@ async function loadFiles() {
   const asrPath = join(webDir, "src/asr/models.ts");
   if (existsSync(asrPath)) {
     const asr = await import(pathToFileURL(asrPath));
-    for (const group of Object.values(asr.ASR_MODELS ?? {})) specs.push(...group);
+    specs.push(...(asr.ALL_ASR_MODELS ?? []));
   }
   const files = new Map();
   for (const spec of specs) {

@@ -1,5 +1,5 @@
 import { AsrClient } from "../src/asr/client";
-import { ASR_MODELS, type AsrBackend } from "../src/asr/models";
+import { asrModels, type AsrBackend } from "../src/asr/models";
 import { ModelStore, OpfsBlobStore, type Manifest } from "../src/models";
 
 export interface BenchConfig {
@@ -42,7 +42,7 @@ const log = (s: string): void => {
 const median = (a: readonly number[]): number => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)]!;
 
 async function bench(cfg: BenchConfig): Promise<unknown> {
-  const manifest: Manifest = { endpoint: cfg.endpoint, models: ASR_MODELS[cfg.backend] };
+  const manifest: Manifest = { endpoint: cfg.endpoint, models: asrModels("ja-en", cfg.backend) };
   const t0 = performance.now();
   const store = new ModelStore({ manifest, store: new OpfsBlobStore() });
   await store.ensureAll();
@@ -50,7 +50,7 @@ async function bench(cfg: BenchConfig): Promise<unknown> {
   const downloadMs = performance.now() - t0;
   log(`models ready in ${downloadMs.toFixed(0)} ms`);
 
-  const asr = await AsrClient.create({ manifest, backend: cfg.backend, threads: cfg.threads });
+  const asr = await AsrClient.create({ manifest, backend: cfg.backend, pair: "ja-en", threads: cfg.threads });
   log(`worker ready in ${asr.loadMs.toFixed(0)} ms: ${JSON.stringify(asr.device)}`);
 
   const clips = ((await (await fetch(`${cfg.clips}/clips.json`)).json()) as Clip[]).slice(0, cfg.n);

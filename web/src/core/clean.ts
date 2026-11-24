@@ -168,3 +168,58 @@ export function tooShort(en: EnText, ja: JaText): boolean {
   const words = (en.match(/[A-Za-z0-9']+/g) ?? []).length;
   return words * 6 < cpLength(jaContent(ja));
 }
+
+/** Only the full prompt sentence counts: shorter phrases like "translate this" can be quoted English inside a real caption. */
+const EN_JA_LEAK_MARKERS: readonly string[] = ["translate the following english text into japanese"];
+const EN_JA_LABEL = new RegExp(
+  `^[${PY_WHITESPACE}]*(?:japanese(?:[${PY_WHITESPACE}]+translation)?|translation|日本語(?:訳)?|翻訳|訳)[${PY_WHITESPACE}]*[:：][${PY_WHITESPACE}]*`,
+  "iu",
+);
+const JAPANESE_END = /[\u3040-\u30ff\u4e00-\u9fff\u3400-\u4dbf。、！？」』）]$/u;
+const JAPANESE_START = /^[\u3040-\u30ff\u4e00-\u9fff\u3400-\u4dbf「『（]/u;
+
+function joinLines(lines: readonly string[]): string {
+  return lines.reduce((joined, line) => {
+    if (joined === "") return line;
+    return JAPANESE_END.test(joined) || JAPANESE_START.test(line) ? joined + line : `${joined} ${line}`;
+  }, "");
+}
+
+/** Clean raw CAT output for English source: cut leaked prompt text, drop a leading label. Japanese is kept. */
+export function cleanCatEnJa(rawOutput: string): CleanedCat {
+  let raw = rawOutput;
+  let promptLeak = false;
+  const lower = raw.toLowerCase();
+  const cuts = EN_JA_LEAK_MARKERS.map((marker) => lower.indexOf(marker)).filter((index) => index !== -1);
+  if (cuts.length > 0) {
+    promptLeak = true;
+    raw = raw.slice(0, Math.min(...cuts));
+  }
+  const joined = joinLines(
+    pySplitLines(raw)
+      .map(pyStrip)
+      .filter((line) => line !== ""),
+  );
+  return { text: asEnText(pyStrip(joined.replace(EN_JA_LABEL, ""))), promptLeak, japaneseStripped: false };
+}
+
+function englishSentenceKeys(text: string): Set<string> {
+  const keys = new Set(sentences(text, ".!?。！？").map((s) => normalized(s)));
+  keys.delete("");
+  return keys;
+}
+
+/**
+ * True when CAT copied a prior line's Japanese instead of translating: a sentence of the output equals a
+ * sentence of a prior output, unless that prior line shares an English sentence with this one ("Yes." twice).
+ */
+export function echoesContextEnJa(ja: EnText, context: readonly ContextTurn[], src: JaText): boolean {
+  const said = englishSentenceKeys(src);
+  const prior = new Set(
+    context
+      .filter((turn) => ![...englishSentenceKeys(turn.ja)].some((key) => said.has(key)))
+      .flatMap((turn) => sentences(turn.en, "。！？!?").map((s) => jaContent(s))),
+  );
+  prior.delete("");
+  return sentences(ja, "。！？!?").some((sentence) => prior.has(jaContent(sentence)));
+}

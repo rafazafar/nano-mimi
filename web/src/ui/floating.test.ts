@@ -24,24 +24,24 @@ describe("pipModel", () => {
 
   it("shows the Japanese of a row still waiting for English, then its streamed English", () => {
     const waiting = run([...settle(1, "Hello"), { kind: "translating", id: asRowId(2), timelineS: 2, ja: asJaText("次の行") }]);
-    expect(pipModel(waiting).provisional).toEqual({ text: "次の行", lang: "ja" });
+    expect(pipModel(waiting).provisional).toEqual({ text: "次の行", kind: "source" });
 
     const streaming = reduceCaptions(waiting, { kind: "en_token", id: asRowId(2), delta: "The next" });
-    expect(pipModel(streaming).provisional).toEqual({ text: "The next", lang: "en" });
+    expect(pipModel(streaming).provisional).toEqual({ text: "The next", kind: "translation" });
     expect(pipModel(streaming).settled.map((line) => line.text)).toEqual(["Hello"]);
   });
 
   it("falls back to the draft when no row is waiting", () => {
     const drafting = run([...settle(1, "Hello"), { kind: "partial_ja", ja: asJaText("来週までに"), timelineS: 3 }]);
-    expect(pipModel(drafting).provisional).toEqual({ text: "来週までに", lang: "ja" });
+    expect(pipModel(drafting).provisional).toEqual({ text: "来週までに", kind: "source" });
 
     const previewed = reduceCaptions(drafting, { kind: "partial_en", en: asEnText("By next week"), version: 1, complete: false });
-    expect(pipModel(previewed).provisional).toEqual({ text: "By next week", lang: "en" });
+    expect(pipModel(previewed).provisional).toEqual({ text: "By next week", kind: "translation" });
   });
 
   it("prefers the row waiting for English over a newer draft", () => {
     const state = run([{ kind: "translating", id: asRowId(1), timelineS: 1, ja: asJaText("一") }, { kind: "partial_ja", ja: asJaText("二"), timelineS: 2 }]);
-    expect(pipModel(state).provisional).toEqual({ text: "一", lang: "ja" });
+    expect(pipModel(state).provisional).toEqual({ text: "一", kind: "source" });
   });
 
   it("carries health and backlog from the same state", () => {

@@ -1,13 +1,21 @@
+import type { PairId } from "../core/pair";
 import type { CaptionRow, CaptionState, Draft, RowId, Timing } from "../pipeline";
 import { h, setAttr, setHidden, setText } from "./dom";
 import { formatSeconds, formatTimestamp } from "./format";
+import type { Messages } from "./i18n";
 import { icon } from "./icons";
+import { sourceLang, targetLang } from "./pairLang";
 
+/**
+ * `ja` and `en` are the pipeline's names for the recognized source text and its translation, in both
+ * directions. The row's class names (`row-ja`, `row-en`, `en-text`) follow them; the `lang` attribute on
+ * each text node says what language it really is.
+ */
 export interface RowView {
   readonly time: string;
   readonly ja: string;
   readonly jaProvisional: boolean;
-  /** The English to show: the settled line, or what the translator has streamed so far. */
+  /** The translation to show: the settled line, or what the translator has streamed so far. */
   readonly en: string;
   readonly enProvisional: boolean;
   /** Said where `en` is still empty. */
@@ -19,10 +27,10 @@ export interface RowView {
   readonly source: CaptionRow["source"];
 }
 
-export function rowView(row: CaptionRow): RowView {
+export function rowView(row: CaptionRow, m: Messages): RowView {
   const time = formatTimestamp(row.timelineS);
   if (row.status === "translating") {
-    return { time, ja: row.ja, jaProvisional: false, en: row.streamed, enProvisional: true, placeholder: "Translating", provisional: true, revising: false, revisions: row.revisions, source: row.source };
+    return { time, ja: row.ja, jaProvisional: false, en: row.streamed, enProvisional: true, placeholder: m.transcript.translating, provisional: true, revising: false, revisions: row.revisions, source: row.source };
   }
   if (row.revising !== null) {
     const streaming = row.revising.streamed !== "";
@@ -46,7 +54,7 @@ export function rowView(row: CaptionRow): RowView {
     jaProvisional: false,
     en: row.en,
     enProvisional: false,
-    placeholder: failed ? "Translation unavailable" : "",
+    placeholder: failed ? m.transcript.unavailable : "",
     provisional: false,
     revising: false,
     revisions: row.revisions,
@@ -62,15 +70,17 @@ export interface DraftView {
 
 export const draftView = (draft: Draft): DraftView => ({ time: formatTimestamp(draft.timelineS), ja: draft.ja, en: draft.previewEn });
 
-export function timingRows(timing: Timing, source: CaptionRow["source"]): readonly (readonly [string, string])[] {
+export function timingRows(timing: Timing, source: CaptionRow["source"], m: Messages, pair: PairId): readonly (readonly [string, string])[] {
+  const units = m.units;
+  const text = m.transcript;
   return [
-    ["English from", source ?? "-"],
-    ["VAD wait", formatSeconds(timing.vadWaitS)],
-    ["Queue wait", formatSeconds(timing.queueWaitS)],
-    ["Speech recognition", formatSeconds(timing.asrS)],
-    ["Translation", formatSeconds(timing.mtS)],
-    ["Perceived", formatSeconds(timing.perceivedS)],
-    ["End to end", formatSeconds(timing.endToEndS)],
+    [text.from(m.language[targetLang(pair)]), source ?? "-"],
+    [text.vadWait, formatSeconds(timing.vadWaitS, units)],
+    [text.queueWait, formatSeconds(timing.queueWaitS, units)],
+    [text.asr, formatSeconds(timing.asrS, units)],
+    [text.mt, formatSeconds(timing.mtS, units)],
+    [text.perceived, formatSeconds(timing.perceivedS, units)],
+    [text.endToEnd, formatSeconds(timing.endToEndS, units)],
   ];
 }
 
@@ -99,21 +109,21 @@ interface RowParts {
   readonly timingList: HTMLElement;
 }
 
-function buildRow(className: string): RowParts {
+function buildRow(className: string, m: Messages): RowParts {
   const time = h("time", { class: "row-time" });
   const enText = h("span", { class: "en-text" });
-  const en = h("p", { class: "row-en", lang: "en" }, enText, h("span", { class: "caret", "aria-hidden": "true" }));
-  const ja = h("p", { class: "row-ja", lang: "ja" });
-  const tagLive = h("span", { class: "tag tag-live" }, h("span", { class: "pulse-dot", "aria-hidden": "true" }), "live");
-  const tagRevising = h("span", { class: "tag tag-revising", hidden: true }, icon("retry", "icon icon-sm"), "Re-translating");
-  const tagRevised = h("span", { class: "tag tag-revised", hidden: true, title: "This line was rewritten in place when the next fragment joined it." }, "revised");
+  const en = h("p", { class: "row-en" }, enText, h("span", { class: "caret", "aria-hidden": "true" }));
+  const ja = h("p", { class: "row-ja" });
+  const tagLive = h("span", { class: "tag tag-live" }, h("span", { class: "pulse-dot", "aria-hidden": "true" }), m.transcript.liveTag);
+  const tagRevising = h("span", { class: "tag tag-revising", hidden: true }, icon("retry", "icon icon-sm"), m.transcript.retranslating);
+  const tagRevised = h("span", { class: "tag tag-revised", hidden: true, title: m.transcript.revisedTitle }, m.transcript.revised(1));
   const timingSource = h("span", { class: "timing-source" });
   const timingTotal = h("span", { class: "timing-total" });
   const timingList = h("dl", { class: "timing-list" });
   const timing = h(
     "details",
     { class: "timing" },
-    h("summary", { title: "Timing detail" }, timingSource, timingTotal, icon("chevron", "icon icon-sm chevron")),
+    h("summary", { title: m.transcript.timingDetail }, timingSource, timingTotal, icon("chevron", "icon icon-sm chevron")),
     timingList,
   );
   const meta = h("div", { class: "row-meta" }, tagLive, tagRevising, tagRevised, timing);
@@ -127,6 +137,7 @@ interface RowEntry {
 }
 
 export interface TranscriptOptions {
+  readonly messages: Messages;
   readonly prefersReducedMotion: () => boolean;
 }
 
@@ -146,6 +157,7 @@ export class TranscriptView {
   private readonly alert: HTMLElement;
   private readonly announce: HTMLElement;
   private readonly entries = new Map<RowId, RowEntry>();
+  private pair: PairId = "ja-en";
   private pinned = true;
   private lastScrollTop = 0;
   private seenRows = 0;
@@ -154,12 +166,12 @@ export class TranscriptView {
   constructor(private readonly options: TranscriptOptions) {
     this.emptySlot = h("div", { class: "empty", "data-role": "empty" });
     this.list = h("div", { class: "rows" });
-    this.draft = buildRow("row draft");
+    this.draft = buildRow("row draft", options.messages);
     this.draft.el.hidden = true;
     this.draft.el.dataset["draft"] = "";
-    this.scroller = h("div", { class: "transcript", role: "log", "aria-label": "Live captions", "aria-live": "off", tabindex: "0", "data-role": "transcript" }, this.emptySlot, this.list, this.draft.el);
+    this.scroller = h("div", { class: "transcript", role: "log", "aria-label": options.messages.transcript.logLabel, "aria-live": "off", tabindex: "0", "data-role": "transcript" }, this.emptySlot, this.list, this.draft.el);
     this.alert = h("div", { class: "notice notice-error", role: "alert", "data-role": "pipeline-error", hidden: true });
-    this.jump = h("button", { class: "btn btn-raised jump", type: "button", "data-role": "jump", hidden: true, onclick: () => this.jumpToLive() }, icon("down"), h("span", {}, "Jump to live"));
+    this.jump = h("button", { class: "btn btn-raised jump", type: "button", "data-role": "jump", hidden: true, onclick: () => this.jumpToLive() }, icon("down"), h("span", {}, options.messages.transcript.jump));
     this.announce = h("div", { class: "sr-only", "aria-live": "polite", "data-role": "announce" });
     this.el = h("div", { class: "transcript-wrap" }, this.alert, this.scroller, this.jump, this.announce);
     this.scroller.addEventListener("scroll", () => this.onScroll(), { passive: true });
@@ -171,12 +183,13 @@ export class TranscriptView {
     this.sync(this.seenRows);
   }
 
-  render(state: CaptionState): void {
+  render(state: CaptionState, pair: PairId): void {
+    this.pair = pair;
     this.syncRows(state.rows);
     this.patchDraft(state.draft);
     const hasContent = state.rows.length > 0 || state.draft !== null;
     setHidden(this.emptySlot, hasContent);
-    setText(this.alert, state.error === null ? "" : `Pipeline error: ${state.error}`);
+    setText(this.alert, state.error === null ? "" : this.options.messages.transcript.pipelineError(state.error));
     setHidden(this.alert, state.error === null);
     if (state.rows.length === 0) this.pinned = true;
     if (this.pinned) this.scroller.scrollTop = this.scroller.scrollHeight;
@@ -198,7 +211,7 @@ export class TranscriptView {
     setHidden(this.jump, !away);
     const unseen = Math.max(0, total - seen);
     const label = this.jump.lastElementChild;
-    if (label !== null) setText(label, unseen > 0 ? `Jump to live, ${unseen} new` : "Jump to live");
+    if (label !== null) setText(label, unseen > 0 ? this.options.messages.transcript.jumpNew(unseen) : this.options.messages.transcript.jump);
   }
 
   private syncRows(rows: readonly CaptionRow[]): void {
@@ -208,7 +221,7 @@ export class TranscriptView {
       seen.add(row.id);
       let entry = this.entries.get(row.id);
       if (entry === undefined) {
-        entry = { parts: buildRow("row"), row };
+        entry = { parts: buildRow("row", this.options.messages), row };
         entry.parts.el.dataset["rowId"] = String(row.id);
         this.paint(entry.parts, row, null);
         this.entries.set(row.id, entry);
@@ -228,7 +241,9 @@ export class TranscriptView {
   }
 
   private paint(parts: RowParts, row: CaptionRow, previous: CaptionRow | null): void {
-    const v = rowView(row);
+    const m = this.options.messages;
+    const v = rowView(row, m);
+    this.setLangs(parts);
     setText(parts.time, v.time);
     setAttr(parts.el, "data-status", row.status);
     setAttr(parts.el, "data-provisional", String(v.provisional));
@@ -242,7 +257,7 @@ export class TranscriptView {
     setAttr(parts.ja, "data-provisional", String(v.jaProvisional));
     setHidden(parts.tagRevising, !v.revising);
     setHidden(parts.tagRevised, v.revisions === 0);
-    setText(parts.tagRevised, v.revisions > 1 ? `revised ×${v.revisions}` : "revised");
+    setText(parts.tagRevised, m.transcript.revised(v.revisions));
     if (row.timing !== (previous?.timing ?? null) || previous === null) this.paintTiming(parts, row);
     if (previous !== null && row.revisions !== previous.revisions) this.flash(parts.el);
   }
@@ -251,10 +266,16 @@ export class TranscriptView {
     setHidden(parts.timing, row.timing === null);
     if (row.timing === null) return;
     setText(parts.timingSource, row.source ?? "");
-    setText(parts.timingTotal, formatSeconds(row.timing.perceivedS));
+    setText(parts.timingTotal, formatSeconds(row.timing.perceivedS, this.options.messages.units));
     parts.timingList.replaceChildren(
-      ...timingRows(row.timing, row.source).flatMap(([label, value]) => [h("dt", {}, label), h("dd", {}, value)]),
+      ...timingRows(row.timing, row.source, this.options.messages, this.pair).flatMap(([label, value]) => [h("dt", {}, label), h("dd", {}, value)]),
     );
+  }
+
+  /** Tags each text node with the language it is in, so screen readers and the Japanese typography follow the direction. */
+  private setLangs(parts: RowParts): void {
+    setAttr(parts.en, "lang", targetLang(this.pair));
+    setAttr(parts.ja, "lang", sourceLang(this.pair));
   }
 
   private flash(el: HTMLElement): void {
@@ -267,6 +288,7 @@ export class TranscriptView {
     setHidden(this.draft.el, draft === null);
     if (draft === null) return;
     const v = draftView(draft);
+    this.setLangs(this.draft);
     setText(this.draft.time, v.time);
     setAttr(this.draft.el, "data-provisional", "true");
     setText(this.draft.enText, v.en);
@@ -283,6 +305,7 @@ export class TranscriptView {
       const text = `${row.id}:${row.revisions}:${row.en}`;
       if (text !== this.announced) {
         this.announced = text;
+        setAttr(this.announce, "lang", targetLang(this.pair));
         setText(this.announce, row.en);
       }
       return;

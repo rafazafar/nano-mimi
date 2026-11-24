@@ -62,7 +62,7 @@ const deps: AppDeps = {
   probeGpu: async () => fakeGpu(scenario.gpu),
   checkCapabilities: async () => fakeIssues(scenario.gpu),
   createModelStore: (manifest, onState) => new FakeStore(manifest, disk, onState, download),
-  loadEngines: (_manifest, _backend, onPhase) => engines.load(onPhase),
+  loadEngines: (_manifest, _backend, pair, onPhase) => engines.load(pair, onPhase),
   startSession: (options) => session.start(options),
   storage: browserStorage(),
   clock: performanceClock,
@@ -72,6 +72,8 @@ const deps: AppDeps = {
     systemDark: matchMedia("(prefers-color-scheme: dark)"),
     pip: pipApi(),
     secureContext: isSecureContext,
+    // `?lang=ja-JP` stands in for a Japanese browser.
+    languages: new URLSearchParams(location.search).get("lang")?.split(",") ?? ["en-US"],
   },
 };
 

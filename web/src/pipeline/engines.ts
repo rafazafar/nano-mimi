@@ -7,6 +7,7 @@ import { CAT_MODEL } from "../models/manifest";
 import type { Manifest } from "../models/types";
 import { MtClient } from "../mt/client";
 import type { LoadInfo } from "../mt/protocol";
+import type { PairId } from "../core/pair";
 import type { AsrEngine, MtEngine } from "./types";
 
 export type EnginePhase = "vad" | "asr" | "mt";
@@ -22,6 +23,8 @@ export interface EngineInfo {
 }
 
 export interface Engines {
+  /** The direction these engines were loaded for: the recognizer is the source language's. */
+  readonly pair: PairId;
   readonly asr: AsrEngine;
   readonly mt: MtEngine;
   readonly scorer: WindowScorer;
@@ -36,13 +39,14 @@ export function asrThreads(): number {
 }
 
 /**
- * Loads Silero, the Haas-ja ASR worker and the CAT worker from the model store, sequentially so the two
+ * Loads Silero, the pair's ASR worker (Haas-ja or Parakeet-EN) and the CAT worker from the model store, sequentially so the two
  * GPU models do not compile their kernels against each other. Every file in `manifest` must already be
  * downloaded and verified.
  */
 export async function loadEngines(
   manifest: Manifest,
   backend: AsrBackend,
+  pair: PairId,
   onPhase: (phase: EnginePhase, state: "start" | "done") => void = () => undefined,
 ): Promise<Engines> {
   const t0 = performance.now();
@@ -54,16 +58,17 @@ export async function loadEngines(
     return [value, performance.now() - start];
   };
   const [scorer, vadLoadMs] = await timed("vad", loadSilero);
-  const [asr, asrLoadMs] = await timed("asr", () => AsrClient.create({ manifest, backend, threads: asrThreads() }));
+  const [asr, asrLoadMs] = await timed("asr", () => AsrClient.create({ manifest, backend, pair, threads: asrThreads() }));
   let mt: MtClient;
   let mtLoadMs: number;
   try {
-    [mt, mtLoadMs] = await timed("mt", () => MtClient.start(manifest, CAT_MODEL.id));
+    [mt, mtLoadMs] = await timed("mt", () => MtClient.start(manifest, CAT_MODEL.id, pair));
   } catch (error) {
     asr.terminate();
     throw error;
   }
   return {
+    pair,
     asr: {
       transcribe: (samples) => asr.transcribe(samples),
     },

@@ -1,3 +1,5 @@
+import type { Messages } from "./i18n";
+
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
 /** `mm:ss` on the session timeline, `h:mm:ss` from one hour on. Anything unusable reads as zero. */
@@ -10,21 +12,21 @@ export function formatTimestamp(seconds: number): string {
 }
 
 /** A duration in seconds with the precision that matters at its size: `0.31 s`, `4.20 s`, `38.0 s`. */
-export function formatSeconds(seconds: number): string {
+export function formatSeconds(seconds: number, units: Messages["units"]): string {
   if (!Number.isFinite(seconds)) return "-";
   const s = Math.max(0, seconds);
-  return `${s < 10 ? s.toFixed(2) : s < 100 ? s.toFixed(1) : Math.round(s)} s`;
+  return `${s < 10 ? s.toFixed(2) : s < 100 ? s.toFixed(1) : Math.round(s)}${units.seconds}`;
 }
 
 /** Engine load times arrive in milliseconds; sub-second ones stay in ms. */
-export function formatMs(ms: number): string {
+export function formatMs(ms: number, units: Messages["units"]): string {
   if (!Number.isFinite(ms)) return "-";
-  return ms < 1000 ? `${Math.round(ms)} ms` : formatSeconds(ms / 1000);
+  return ms < 1000 ? `${Math.round(ms)}${units.milliseconds}` : formatSeconds(ms / 1000, units);
 }
 
-export function formatBehind(backlogS: number, health: "behind" | "overloaded"): string {
+export function formatBehind(backlogS: number, health: "behind" | "overloaded", m: Messages): string {
   const s = Math.max(0, Math.round(backlogS));
-  return health === "overloaded" ? `Overloaded, ${s} s behind` : `Behind by ${s} s`;
+  return health === "overloaded" ? m.health.overloaded(s) : m.health.behind(s);
 }
 
 /** A percentile of `values` by linear interpolation between ranks (numpy's default). Null when there is no data. */

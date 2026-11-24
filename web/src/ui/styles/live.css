@@ -334,6 +334,7 @@
 }
 
 .dock {
+  container: dock / inline-size;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -411,6 +412,14 @@
   min-width: 0;
 }
 
+/* With wide source labels the middle column would leave the hint a few pixels wide, one character per line in Japanese. */
+@container dock (max-width: 46rem) {
+  .dock-detail {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
 .hint {
   min-width: 0;
   color: var(--ink-2);
@@ -476,4 +485,32 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--s-2);
+}
+
+/* Japanese caption text: a Japanese-capable stack, strict kinsoku line breaking, and the looser leading kana and kanji need. */
+.row-body [lang="ja"],
+.pip-line[lang="ja"],
+.pip-provisional[lang="ja"] {
+  font-family: var(--font-ja);
+  line-break: strict;
+  word-break: normal;
+}
+
+.row-en[lang="ja"] {
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.row-ja[lang="ja"] {
+  line-height: 1.7;
+}
+
+.pip-line[lang="ja"],
+.pip-provisional[lang="ja"] {
+  line-height: 1.5;
+}
+
+.pip-line[lang="ja"][data-age="0"] {
+  line-height: 1.4;
+  letter-spacing: 0;
 }

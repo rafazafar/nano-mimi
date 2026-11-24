@@ -47,6 +47,7 @@ export async function startSession(options: SessionOptions): Promise<Session> {
     mt: engines.mt,
     clock: performanceClock,
     glossary,
+    pair: engines.pair,
     options: options.pipeline ?? (spec.kind === "file" ? REPLAY_OPTIONS : LIVE_OPTIONS),
   });
   pipeline.subscribe(onEvent);

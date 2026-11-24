@@ -3,6 +3,7 @@ import type { StorageGrant } from "../models";
 import type { CaptionRow, EngineInfo } from "../pipeline";
 import { h, setAttr, setText } from "./dom";
 import { formatMs, formatSeconds } from "./format";
+import type { Messages } from "./i18n";
 import { perceivedStats } from "./stats";
 import type { Setup } from "./state";
 
@@ -29,11 +30,11 @@ export function gpuRows(report: GpuReport): readonly (readonly [string, string])
   ];
 }
 
-export function gpuStatus(result: GpuResult | null): { readonly state: "pending" | "ready" | "fallback" | "unavailable"; readonly text: string } {
-  if (result === null) return { state: "pending", text: "Checking WebGPU..." };
-  if (result.kind === "unavailable") return { state: "unavailable", text: `WebGPU unavailable: ${result.reason}` };
+export function gpuStatus(result: GpuResult | null, m: Messages): { readonly state: "pending" | "ready" | "fallback" | "unavailable"; readonly text: string } {
+  if (result === null) return { state: "pending", text: m.diagnostics.checkingGpu };
+  if (result.kind === "unavailable") return { state: "unavailable", text: m.diagnostics.gpuUnavailable(result.reason) };
   const { report } = result;
-  return { state: report.isFallbackAdapter ? "fallback" : "ready", text: `WebGPU adapter: ${report.vendor} ${report.architecture}`.trim() };
+  return { state: report.isFallbackAdapter ? "fallback" : "ready", text: m.diagnostics.gpuAdapter(`${report.vendor} ${report.architecture}`.trim()) };
 }
 
 class KeyValues {
@@ -59,45 +60,49 @@ export class DiagnosticsView {
   readonly el: HTMLDetailsElement;
   private readonly status: HTMLElement;
   private readonly gpuList: HTMLElement;
-  private readonly runtime = new KeyValues([
-    ["crossOriginIsolated", "Cross-origin isolated"],
-    ["asr-backend", "Speech backend"],
-    ["asr-device", "Speech device"],
-    ["mt-runtime", "Translation runtime"],
-    ["mt-adapter", "Translation adapter"],
-    ["storage", "Model storage"],
-    ["endpoint", "Download endpoint"],
-    ["theme", "Theme"],
-  ]);
-  private readonly loads = new KeyValues([
-    ["load-vad", "Voice detection"],
-    ["load-asr", "Speech recognition"],
-    ["load-mt", "Translation"],
-    ["load-total", "Total"],
-  ]);
-  private readonly latency = new KeyValues([
-    ["perceived-count", "Lines measured"],
-    ["perceived-p50", "Perceived p50"],
-    ["perceived-p95", "Perceived p95"],
-  ]);
+  private readonly runtime: KeyValues;
+  private readonly loads: KeyValues;
+  private readonly latency: KeyValues;
   private gpuShown: GpuResult | null = null;
   private statsRows: readonly CaptionRow[] | null = null;
   private rows: readonly CaptionRow[] = [];
 
-  constructor() {
-    this.status = h("p", { id: "gpu-status", "data-state": "pending" }, "Checking WebGPU...");
+  constructor(private readonly m: Messages) {
+    const f = m.diagnostics.fields;
+    this.runtime = new KeyValues([
+      ["crossOriginIsolated", f.crossOriginIsolated],
+      ["asr-backend", f.asrBackend],
+      ["asr-device", f.asrDevice],
+      ["mt-runtime", f.mtRuntime],
+      ["mt-adapter", f.mtAdapter],
+      ["storage", f.storage],
+      ["endpoint", f.endpoint],
+      ["theme", f.theme],
+    ]);
+    this.loads = new KeyValues([
+      ["load-vad", m.setup.phases.vad],
+      ["load-asr", m.setup.phases.asr],
+      ["load-mt", m.setup.phases.mt],
+      ["load-total", f.total],
+    ]);
+    this.latency = new KeyValues([
+      ["perceived-count", f.lines],
+      ["perceived-p50", f.p50],
+      ["perceived-p95", f.p95],
+    ]);
+    this.status = h("p", { id: "gpu-status", "data-state": "pending" }, m.diagnostics.checkingGpu);
     this.gpuList = h("dl", { id: "gpu-details", class: "kv", hidden: true });
     this.el = h(
       "details",
       { class: "diagnostics", "data-role": "diagnostics", ontoggle: () => this.onToggle() },
-      h("summary", {}, h("span", {}, "Diagnostics")),
+      h("summary", {}, h("span", {}, m.diagnostics.summary)),
       h(
         "div",
         { class: "diag-body" },
-        h("section", {}, h("h3", {}, "WebGPU"), this.status, this.gpuList),
-        h("section", {}, h("h3", {}, "Runtime"), this.runtime.el),
-        h("section", {}, h("h3", {}, "Engine load times"), this.loads.el),
-        h("section", {}, h("h3", {}, "Latency, this session"), this.latency.el),
+        h("section", {}, h("h3", {}, m.diagnostics.webgpu), this.status, this.gpuList),
+        h("section", {}, h("h3", {}, m.diagnostics.runtime), this.runtime.el),
+        h("section", {}, h("h3", {}, m.diagnostics.loadTimes), this.loads.el),
+        h("section", {}, h("h3", {}, m.diagnostics.latency), this.latency.el),
       ),
     );
   }
@@ -118,7 +123,7 @@ export class DiagnosticsView {
   private paintGpu(gpu: GpuResult | null): void {
     if (gpu === this.gpuShown) return;
     this.gpuShown = gpu;
-    const status = gpuStatus(gpu);
+    const status = gpuStatus(gpu, this.m);
     setAttr(this.status, "data-state", status.state);
     setText(this.status, status.text);
     if (gpu?.kind !== "ok") return;
@@ -131,20 +136,20 @@ export class DiagnosticsView {
   private paintRuntime(model: DiagnosticsModel): void {
     const { engines, setup } = model;
     this.runtime.set("crossOriginIsolated", String(model.crossOriginIsolated));
-    this.runtime.set("asr-backend", setup === null ? "-" : `${setup.backend}${setup.backend === setup.autoBackend ? "" : " (chosen)"}`);
-    this.runtime.set("asr-device", engines === null ? "-" : describeAsrDevice(engines));
+    this.runtime.set("asr-backend", setup === null ? "-" : `${setup.backend}${setup.backend === setup.autoBackend ? "" : this.m.diagnostics.chosen}`);
+    this.runtime.set("asr-device", engines === null ? "-" : describeAsrDevice(engines, this.m));
     this.runtime.set("mt-runtime", engines === null ? "-" : engines.mt.runtime);
     this.runtime.set("mt-adapter", engines?.mt.adapter == null ? "-" : `${engines.mt.adapter.vendor} ${engines.mt.adapter.architecture}`.trim());
     this.runtime.set("storage", model.storageGrant ?? "-");
-    this.runtime.set("endpoint", setup === null ? "-" : (setup.manifest.endpoint ?? "default"));
+    this.runtime.set("endpoint", setup === null ? "-" : (setup.manifest.endpoint ?? this.m.diagnostics.defaultEndpoint));
     this.runtime.set("theme", model.theme);
   }
 
   private paintLoads(engines: EngineInfo | null): void {
-    this.loads.set("load-vad", engines === null ? "-" : formatMs(engines.vadLoadMs));
-    this.loads.set("load-asr", engines === null ? "-" : formatMs(engines.asrLoadMs));
-    this.loads.set("load-mt", engines === null ? "-" : formatMs(engines.mtLoadMs));
-    this.loads.set("load-total", engines === null ? "-" : formatMs(engines.totalLoadMs));
+    this.loads.set("load-vad", engines === null ? "-" : formatMs(engines.vadLoadMs, this.m.units));
+    this.loads.set("load-asr", engines === null ? "-" : formatMs(engines.asrLoadMs, this.m.units));
+    this.loads.set("load-mt", engines === null ? "-" : formatMs(engines.mtLoadMs, this.m.units));
+    this.loads.set("load-total", engines === null ? "-" : formatMs(engines.totalLoadMs, this.m.units));
   }
 
   private paintLatency(rows: readonly CaptionRow[]): void {
@@ -152,13 +157,13 @@ export class DiagnosticsView {
     this.statsRows = rows;
     const stats = perceivedStats(rows);
     this.latency.set("perceived-count", stats === null ? "0" : String(stats.count));
-    this.latency.set("perceived-p50", stats === null ? "-" : formatSeconds(stats.p50));
-    this.latency.set("perceived-p95", stats === null ? "-" : formatSeconds(stats.p95));
+    this.latency.set("perceived-p50", stats === null ? "-" : formatSeconds(stats.p50, this.m.units));
+    this.latency.set("perceived-p95", stats === null ? "-" : formatSeconds(stats.p95, this.m.units));
   }
 }
 
-function describeAsrDevice(info: EngineInfo): string {
+function describeAsrDevice(info: EngineInfo, m: Messages): string {
   const device = info.asr;
-  if (device.adapter === undefined) return `wasm, ${device.hardwareConcurrency} cores${device.crossOriginIsolated ? "" : ", single thread"}`;
-  return `${device.adapter.vendor} ${device.adapter.architecture}${device.adapter.isFallbackAdapter ? " (fallback)" : ""}`.trim();
+  if (device.adapter === undefined) return `wasm, ${m.diagnostics.cores(device.hardwareConcurrency)}${device.crossOriginIsolated ? "" : m.diagnostics.singleThread}`;
+  return `${device.adapter.vendor} ${device.adapter.architecture}${device.adapter.isFallbackAdapter ? m.diagnostics.fallback : ""}`.trim();
 }

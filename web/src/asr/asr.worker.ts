@@ -10,7 +10,7 @@ import { ModelStore, OpfsBlobStore } from "../models";
 import { asyncifyWasmUrl } from "../runtimeWasm";
 import { parseHaasConfig } from "./config";
 import { HaasRecognizer, type HaasTables } from "./haas";
-import { ASR_ENCODER, HAAS_DECODER, HAAS_TABLES, type AsrBackend } from "./models";
+import { ASR_SETS, type AsrBackend } from "./models";
 import type { AsrDevice, AsrInit, AsrRequest, AsrResponse } from "./protocol";
 import { parsePieces } from "./tokenizer";
 
@@ -20,8 +20,8 @@ function post(msg: AsrResponse): void {
   self.postMessage(msg);
 }
 
-async function loadTables(store: ModelStore): Promise<HaasTables> {
-  const buf = (path: string): Promise<ArrayBuffer> => store.getArrayBuffer(HAAS_TABLES.id, path);
+async function loadTables(store: ModelStore, tablesId: string): Promise<HaasTables> {
+  const buf = (path: string): Promise<ArrayBuffer> => store.getArrayBuffer(tablesId, path);
   const json = async (path: string): Promise<unknown> => JSON.parse(new TextDecoder().decode(await buf(path)));
   return {
     config: parseHaasConfig(await json("config.json")),
@@ -54,21 +54,22 @@ async function init(req: AsrInit): Promise<HaasRecognizer> {
   ortCpu.env.wasm.numThreads = req.threads;
   ortCpu.env.wasm.wasmPaths = { mjs: plainMjs, wasm: plainWasm };
   const encOrt = req.backend === "webgpu" ? ortGpu : ortCpu;
-  const enc = ASR_ENCODER[req.backend];
+  const set = ASR_SETS[req.pair];
+  const enc = set.encoder[req.backend];
   const encUrl = await store.getObjectUrl(enc.model.id, enc.path);
-  const dataUrl = await store.getObjectUrl(enc.model.id, enc.data);
+  const dataUrl = enc.data === undefined ? null : await store.getObjectUrl(enc.model.id, enc.data);
   const decoderSession = async (): Promise<Ort.InferenceSession> =>
-    ortCpu.InferenceSession.create(new Uint8Array(await store.getArrayBuffer(HAAS_DECODER.id, HAAS_DECODER.files[0]!.path)), {
+    ortCpu.InferenceSession.create(new Uint8Array(await store.getArrayBuffer(set.decoder.id, set.decoder.files[0]!.path)), {
       executionProviders: ["wasm"],
       graphOptimizationLevel: "all",
     });
   try {
     const [tables, encoder, decoder] = await Promise.all([
-      loadTables(store),
+      loadTables(store, set.tables.id),
       encOrt.InferenceSession.create(encUrl, {
         executionProviders: [req.backend === "webgpu" ? { name: "webgpu" } : "wasm"],
         graphOptimizationLevel: "all",
-        externalData: [{ path: enc.data.split("/").pop()!, data: dataUrl }],
+        ...(enc.data === undefined || dataUrl === null ? {} : { externalData: [{ path: enc.data.split("/").pop()!, data: dataUrl }] }),
       }),
       decoderSession(),
     ]);
@@ -77,7 +78,7 @@ async function init(req: AsrInit): Promise<HaasRecognizer> {
     return new HaasRecognizer(tables, { ort: encOrt, session: encoder }, { ort: ortCpu, decoder });
   } finally {
     URL.revokeObjectURL(encUrl);
-    URL.revokeObjectURL(dataUrl);
+    if (dataUrl !== null) URL.revokeObjectURL(dataUrl);
   }
 }
 

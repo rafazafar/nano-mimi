@@ -80,6 +80,13 @@ export function normalizePunctuation(text: JaText): JaText {
   return asJaText(needsStop ? `${stripped}。` : stripped);
 }
 
+/** English source: close an unpunctuated line with a full stop. */
+export function normalizeEnglishPunctuation(text: JaText): JaText {
+  const stripped = pyStrip(text);
+  const needsStop = stripped !== "" && !"。！？.!?".includes(stripped.slice(-1));
+  return asJaText(needsStop ? `${stripped}.` : stripped);
+}
+
 const NON_CONTENT = new RegExp(
   `^[${PY_WHITESPACE}。、．，.！？!?・…‥\\-—–~～「」『』（）()\\[\\]【】〈〉《》"'‘’“”\`´]+$`,
   "u",

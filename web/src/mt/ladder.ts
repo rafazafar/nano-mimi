@@ -1,6 +1,6 @@
-import { cleanCat, echoesContext, isLabelled, tooShort } from "../core/clean";
-import { groupDigits, unsupportedNumbers } from "../core/numbers";
+import type { PairId } from "../core/pair";
 import { chatMessages, type ChatMessage } from "../core/prompt";
+import { strategyFor } from "../core/strategy";
 import type { ContextTurn, JaText } from "../core/types";
 import type { Attempt, AttemptReason, Generation, MtResult } from "./protocol";
 
@@ -10,6 +10,8 @@ export const PREVIEW_MAX_TOKENS = 48;
 export interface GenerateRequest {
   readonly messages: readonly ChatMessage[];
   readonly maxTokens: number;
+  /** Ban the Japanese script (translation into English); off when the output is Japanese. */
+  readonly banSourceScript: boolean;
 }
 
 /** One greedy CAT pass. Must reject with an AbortError once `signal` fires. */
@@ -20,6 +22,8 @@ export type Generate = (
 ) => Promise<Generation>;
 
 export interface LadderOptions {
+  /** Defaults to `ja-en`. */
+  readonly pair?: PairId;
   readonly preview: boolean;
   readonly signal: AbortSignal;
   /** Receives the first pass's tokens only; retries run silently, as in translate.py. */
@@ -31,7 +35,8 @@ export interface LadderOptions {
  * Port of translate.py `_do_translate_streaming`: one pass with context, a
  * no-context retry when that reply is empty, an echo, too short or labelled,
  * and a grouped-digits retry when numbers do not match, keeping whichever
- * reply has fewer unsupported numbers.
+ * reply has fewer unsupported numbers. `en-ja` retries without context only on an empty reply or
+ * an echo, and does not check numbers (see `strategyFor`).
  */
 export async function translateWithRetries(
   ja: JaText,
@@ -42,6 +47,7 @@ export async function translateWithRetries(
   const now = options.now ?? (() => performance.now());
   const t0 = now();
   const attempts: Attempt[] = [];
+  const { translate } = strategyFor(options.pair ?? "ja-en");
 
   const run = async (
     reason: AttemptReason,
@@ -49,11 +55,11 @@ export async function translateWithRetries(
     turns: readonly ContextTurn[],
     onToken: ((delta: string) => void) | null,
   ): Promise<{ attempt: Attempt; promptLeak: boolean; japaneseStripped: boolean }> => {
-    const { messages, maxTokens } = chatMessages(text, turns);
+    const { messages, maxTokens } = chatMessages(text, turns, translate.prompt);
     const cap = options.preview ? Math.min(maxTokens, PREVIEW_MAX_TOKENS) : maxTokens;
-    const generation = await generate({ messages, maxTokens: cap }, onToken, options.signal);
+    const generation = await generate({ messages, maxTokens: cap, banSourceScript: translate.banSourceScript }, onToken, options.signal);
     options.signal.throwIfAborted();
-    const cleaned = cleanCat(generation.raw);
+    const cleaned = translate.clean(generation.raw);
     const attempt: Attempt = { ...generation, reason, en: cleaned.text };
     attempts.push(attempt);
     return { attempt, promptLeak: cleaned.promptLeak, japaneseStripped: cleaned.japaneseStripped };
@@ -62,22 +68,23 @@ export async function translateWithRetries(
   let turns = context;
   let best = await run("first", ja, turns, options.onToken);
   const first = best.attempt;
-  if (
-    turns.length > 0 &&
-    (first.en === "" || echoesContext(first.en, turns, ja) || tooShort(first.en, ja) || isLabelled(first.raw))
-  ) {
+  if (turns.length > 0 && translate.retryWithoutContext(first, turns, ja)) {
     turns = [];
     best = await run("no-context", ja, turns, null);
   }
 
-  let wrong = unsupportedNumbers(ja, best.attempt.en);
-  const grouped = groupDigits(ja);
-  if (wrong.length > 0 && (turns.length > 0 || grouped !== ja)) {
-    const retry = await run("grouped-digits", grouped, [], null);
-    const retryWrong = unsupportedNumbers(ja, retry.attempt.en);
-    if (retryWrong.length < wrong.length) {
-      best = retry;
-      wrong = retryWrong;
+  let wrong: string[] = [];
+  const numbers = translate.numbers;
+  if (numbers !== null) {
+    wrong = numbers.unsupported(ja, best.attempt.en);
+    const grouped = numbers.regroup(ja);
+    if (wrong.length > 0 && (turns.length > 0 || grouped !== ja)) {
+      const retry = await run("grouped-digits", grouped, [], null);
+      const retryWrong = numbers.unsupported(ja, retry.attempt.en);
+      if (retryWrong.length < wrong.length) {
+        best = retry;
+        wrong = retryWrong;
+      }
     }
   }
 

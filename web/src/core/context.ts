@@ -5,9 +5,14 @@ import { asEnText } from "./types";
 export const CONTEXT_TURNS = 3;
 const CONTEXT_MIN_CHARS = 6;
 
+/** Japanese source: not a fragment, not an English passthrough. */
+const jaEligible = (ja: JaText): boolean => cpLength(jaContent(ja)) >= CONTEXT_MIN_CHARS && !isMostlyEnglish(ja);
+
 /** Rolling window of recent finished lines for one session. */
 export class TranslationContext {
   #turns: ContextTurn[] = [];
+
+  constructor(private readonly eligible: (src: JaText) => boolean = jaEligible) {}
 
   /**
    * Remember a finished line. Empty, fragment and English-passthrough lines are
@@ -16,7 +21,7 @@ export class TranslationContext {
    */
   add(ja: JaText, en: EnText): void {
     const trimmed = pyStrip(en);
-    if (trimmed === "" || cpLength(jaContent(ja)) < CONTEXT_MIN_CHARS || isMostlyEnglish(ja)) return;
+    if (trimmed === "" || !this.eligible(ja)) return;
     this.#turns.push({ ja, en: asEnText(trimmed) });
     if (this.#turns.length > CONTEXT_TURNS) this.#turns.shift();
   }

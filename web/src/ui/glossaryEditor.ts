@@ -1,15 +1,12 @@
+import type { PairId } from "../core/pair";
 import { h, setAttr, setHidden, setText } from "./dom";
 import { icon } from "./icons";
-import { ENTRY_ERROR_TEXT, entryKind, type EntryError, type EntryKind, type GlossaryEntry, type GlossaryStore } from "./glossaryStore";
+import { MAX_ENTRIES, MAX_FIELD_CHARS, entryKind, type EntryError, type GlossaryEntry, type GlossaryStore } from "./glossaryStore";
+import type { Messages } from "./i18n";
+import { sourceLang, targetLang } from "./pairLang";
 
-const KIND_LABEL: Readonly<Record<EntryKind, string>> = { term: "Term", "asr-fix": "Spelling fix" };
-
-const KIND_HINT: Readonly<Record<EntryKind, string>> = {
-  term: "Term: this wording is used in the English.",
-  "asr-fix": "Spelling fix: the Japanese is corrected before translation.",
-};
-
-const IDLE_HINT = "A Japanese replacement fixes how speech recognition spells a word. Any other replacement is used as written in the English.";
+/** A Japanese-speech glossary target may be English or Japanese, so only the English-speech one is tagged. */
+const targetFieldLang = (pair: PairId): string | undefined => (pair === "en-ja" ? targetLang(pair) : undefined);
 
 interface EntryRow {
   readonly el: HTMLLIElement;
@@ -22,6 +19,7 @@ interface EntryRow {
 export class GlossaryEditor {
   readonly el: HTMLElement;
   private readonly list: HTMLElement;
+  private readonly heads: HTMLElement;
   private readonly emptyLine: HTMLElement;
   private readonly sourceInput: HTMLInputElement;
   private readonly targetInput: HTMLInputElement;
@@ -30,26 +28,42 @@ export class GlossaryEditor {
   private readonly unsaved: HTMLElement;
   private rows: EntryRow[] = [];
 
-  constructor(private readonly store: GlossaryStore) {
+  constructor(
+    private readonly store: GlossaryStore,
+    private readonly m: Messages,
+  ) {
+    const { pair } = store;
+    const text = m.glossary;
+    const fields = text.fields[pair];
     this.list = h("ul", { class: "entries", "data-role": "entries" });
-    this.emptyLine = h("p", { class: "note", "data-role": "glossary-empty" }, "No entries yet. Add the names and terms your meetings use.");
-    this.sourceInput = h("input", { class: "input", name: "source", lang: "ja", placeholder: "Japanese as heard", "aria-label": "Japanese to look for", autocomplete: "off", spellcheck: "false" });
-    this.targetInput = h("input", { class: "input", name: "target", placeholder: "Replace with", "aria-label": "Replacement", autocomplete: "off", spellcheck: "false", oninput: () => this.paintHint() });
+    this.emptyLine = h("p", { class: "note", "data-role": "glossary-empty" }, text.empty);
+    this.sourceInput = h("input", { class: "input", name: "source", lang: sourceLang(pair), placeholder: fields.sourcePlaceholder, "aria-label": fields.sourceLabel, autocomplete: "off", spellcheck: "false" });
+    this.targetInput = h("input", { class: "input", name: "target", lang: targetFieldLang(pair), placeholder: fields.targetPlaceholder, "aria-label": fields.targetLabel, autocomplete: "off", spellcheck: "false", oninput: () => this.paintHint() });
     this.hint = h("p", { class: "note", "data-role": "kind-hint", "aria-live": "polite" });
     this.error = h("p", { class: "notice notice-error", role: "alert", "data-role": "glossary-error", hidden: true });
-    this.unsaved = h("p", { class: "note note-warn", "data-role": "glossary-unsaved", hidden: true }, "This browser would not save the glossary. Your entries last until you close the tab.");
+    this.unsaved = h("p", { class: "note note-warn", "data-role": "glossary-unsaved", hidden: true }, text.unsaved);
     const form = h(
       "form",
       { class: "add-entry", "data-role": "add-entry", novalidate: true, onsubmit: (e: Event) => this.onAdd(e) },
       this.sourceInput,
       this.targetInput,
-      h("button", { class: "btn", type: "submit" }, icon("plus"), "Add"),
+      h("button", { class: "btn", type: "submit" }, icon("plus"), text.add),
+    );
+    const columns = text.columns[pair];
+    this.heads = h(
+      "div",
+      { class: "entry-heads", "data-role": "glossary-heads", "aria-hidden": "true" },
+      h("span", {}, columns.source),
+      h("span", { class: "arrow" }, "→"),
+      h("span", {}, columns.target),
+      h("span", {}),
     );
     this.el = h(
       "section",
       { class: "panel glossary", "data-role": "glossary", "aria-labelledby": "glossary-h" },
-      h("h2", { id: "glossary-h" }, "Glossary"),
-      h("p", { class: "help" }, "Fix words recognition gets wrong, or pin how a term is written in English. Edits apply from the next caption."),
+      h("h2", { id: "glossary-h" }, text.heading),
+      h("p", { class: "help" }, text.help[pair]),
+      this.heads,
       this.list,
       this.emptyLine,
       form,
@@ -73,18 +87,37 @@ export class GlossaryEditor {
   }
 
   private showError(error: EntryError | null): void {
-    setText(this.error, error === null ? "" : ENTRY_ERROR_TEXT[error]);
+    setText(this.error, error === null ? "" : this.errorText(error));
     setHidden(this.error, error === null);
   }
 
+  private errorText(error: EntryError): string {
+    const text = this.m.glossary.errors;
+    switch (error) {
+      case "empty-source":
+        return text.emptySource[this.store.pair];
+      case "empty-target":
+        return text.emptyTarget;
+      case "duplicate-source":
+        return text.duplicateSource;
+      case "too-long":
+        return text.tooLong(MAX_FIELD_CHARS);
+      case "full":
+        return text.full(MAX_ENTRIES);
+    }
+  }
+
   private paintHint(): void {
+    const { pair } = this.store;
     const target = this.targetInput.value.trim();
-    setText(this.hint, target === "" ? IDLE_HINT : KIND_HINT[entryKind({ source: "", target })]);
+    setText(this.hint, target === "" ? this.m.glossary.idleHint[pair] : this.m.glossary.kind[pair][entryKind({ source: "", target }, pair)].hint);
   }
 
   private buildRow(index: number): EntryRow {
-    const source = h("input", { class: "input entry-src", lang: "ja", "aria-label": `Japanese for entry ${index + 1}`, autocomplete: "off", spellcheck: "false", onchange: () => this.onEdit(index) });
-    const target = h("input", { class: "input entry-dst", "aria-label": `Replacement for entry ${index + 1}`, autocomplete: "off", spellcheck: "false", onchange: () => this.onEdit(index) });
+    const { pair } = this.store;
+    const fields = this.m.glossary.fields[pair];
+    const source = h("input", { class: "input entry-src", lang: sourceLang(pair), "aria-label": fields.entrySource(index + 1), autocomplete: "off", spellcheck: "false", onchange: () => this.onEdit(index) });
+    const target = h("input", { class: "input entry-dst", lang: targetFieldLang(pair), "aria-label": fields.entryTarget(index + 1), autocomplete: "off", spellcheck: "false", onchange: () => this.onEdit(index) });
     const kind = h("span", { class: "kind", "data-role": "kind" });
     const remove = h("button", { class: "btn btn-quiet btn-icon", type: "button", "data-role": "remove", onclick: () => this.onRemove(index) }, icon("x"));
     const el = h("li", { class: "entry", "data-index": String(index) }, source, h("span", { class: "arrow", "aria-hidden": "true" }, "→"), target, remove, kind);
@@ -112,17 +145,20 @@ export class GlossaryEditor {
     }
     entries.forEach((entry, i) => this.paintRow(this.rows[i]!, entry, overwriteFocused));
     setHidden(this.emptyLine, entries.length > 0);
+    setHidden(this.heads, entries.length === 0);
     setHidden(this.unsaved, this.store.isSaved());
     this.paintHint();
   }
 
   private paintRow(row: EntryRow, entry: GlossaryEntry, overwriteFocused: boolean): void {
-    const kind = entryKind(entry);
+    const { pair } = this.store;
+    const kind = entryKind(entry, pair);
+    const kindText = this.m.glossary.kind[pair][kind];
     if (overwriteFocused || document.activeElement !== row.source) row.source.value = entry.source;
     if (overwriteFocused || document.activeElement !== row.target) row.target.value = entry.target;
     setAttr(row.el, "data-kind", kind);
-    setText(row.kind, KIND_LABEL[kind]);
-    setAttr(row.kind, "title", KIND_HINT[kind]);
-    setAttr(row.remove, "aria-label", `Remove ${entry.source}`);
+    setText(row.kind, kindText.label);
+    setAttr(row.kind, "title", kindText.hint);
+    setAttr(row.remove, "aria-label", this.m.glossary.remove(entry.source));
   }
 }

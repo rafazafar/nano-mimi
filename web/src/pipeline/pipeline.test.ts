@@ -204,3 +204,75 @@ describe("falling behind", () => {
     expect(r.events.filter((e) => e.kind === "backlog")).toEqual([]);
   });
 });
+
+describe("the en-ja pair", () => {
+  function enRig() {
+    const clock = new FakeClock();
+    const asr = new FakeAsr();
+    const mt = new FakeMt();
+    const pipeline = new Pipeline({ asr, mt, clock, pair: "en-ja", glossary: () => new Map([["API", "エーピーアイ"]]), options: LIVE_OPTIONS });
+    const events: PipelineEvent[] = [];
+    pipeline.subscribe((e) => events.push(e));
+    return { asr, mt, pipeline, events };
+  }
+
+  it("closes the line with a full stop, applies the English glossary and translates English", async () => {
+    const r = enRig();
+    r.asr.auto = () => "The api is ready";
+    r.mt.auto = () => "APIの準備ができました。";
+    await r.pipeline.submit(utterance(1));
+    await r.pipeline.finish();
+    expect(r.mt.finals()[0]?.ja).toBe("The エーピーアイ is ready.");
+    expect(r.events.find((e) => e.kind === "final")).toMatchObject({ ja: "The api is ready", en: "APIの準備ができました。", source: "mt" });
+  });
+
+  it("emits no partial-EN preview while the speaker is still talking", async () => {
+    const r = enRig();
+    r.mt.auto = () => "金曜日に変更になりました。";
+    const call = new Promise<void>((resolve) => {
+      r.asr.auto = (c) => {
+        c.segment("I wanted to tell you that the meeting moved");
+        resolve();
+        return "I wanted to tell you that the meeting moved to Friday.";
+      };
+    });
+    await r.pipeline.submit(utterance(1));
+    await call;
+    await settle();
+    expect(r.mt.previews()).toHaveLength(0);
+    expect(kinds(r.events)).toContain("partial_ja");
+    await r.pipeline.finish();
+    expect(kinds(r.events)).not.toContain("partial_en");
+  });
+
+  it("does not revise a row when a fragment follows closely", async () => {
+    const r = enRig();
+    r.asr.auto = (call) => (call.samples[0] === 1 ? "I told the manager but" : "there is no reply yet.");
+    r.mt.auto = (call) => `JA<${call.ja}>`;
+    await r.pipeline.submit(utterance(1, { seconds: 1, audioEndS: 2 }));
+    await r.pipeline.submit(utterance(2, { seconds: 1, audioEndS: 3.5 }));
+    await r.pipeline.finish();
+    expect(kinds(r.events).filter((k) => k === "final" || k === "revising" || k === "revision")).toEqual(["final", "final"]);
+  });
+
+  it("translates each English line without context turns", async () => {
+    const r = enRig();
+    r.asr.auto = (call) => (call.samples[0] === 1 ? "The quote arrived today." : "We need to reply soon.");
+    r.mt.auto = (call) => `JA<${call.ja}>`;
+    await r.pipeline.submit(utterance(1));
+    await r.pipeline.submit(utterance(2));
+    await r.pipeline.finish();
+    expect(r.mt.finals()[1]?.context).toEqual([]);
+  });
+});
+
+describe("cleanAsrText on English", () => {
+  it("keeps ordinary English and drops punctuation-only text", () => {
+    expect(cleanAsrText(asJaText("So we went to the store, and I said no, no, we can't."))).toBe("So we went to the store, and I said no, no, we can't.");
+    expect(cleanAsrText(asJaText("..."))).toBeNull();
+  });
+
+  it("collapses a one-word decode loop", () => {
+    expect(cleanAsrText(asJaText("no no no no no no no no"))).toBe("no no");
+  });
+});

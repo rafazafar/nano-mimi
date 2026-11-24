@@ -1,3 +1,4 @@
+import type { PairId } from "../core/pair";
 import type { Manifest } from "../models";
 import type { Transcript } from "./haas";
 import type { AsrBackend } from "./models";
@@ -18,8 +19,10 @@ export interface AsrDevice {
 }
 
 export interface AsrInit {
-  /** Must list the backend's files (ASR_MODELS[backend]); they must already be downloaded. */
+  /** Must list `asrModels(pair, backend)`; they must already be downloaded. */
   readonly manifest: Manifest;
+  /** Picks the recognizer for the pair's source language. */
+  readonly pair: PairId;
   readonly backend: AsrBackend;
   /** wasm EP threads; needs crossOriginIsolated to exceed 1. */
   readonly threads: number;

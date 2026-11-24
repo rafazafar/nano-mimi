@@ -1,10 +1,13 @@
+import type { PairId } from "../core/pair";
 import { formatBytes } from "../models/types";
 import type { CaptionState } from "../pipeline";
 import { h, setAttr, setHidden, setText } from "./dom";
 import { formatMs, formatTimestamp } from "./format";
 import type { FloatingState } from "./floating";
+import type { Messages, RichText } from "./i18n";
 import { icon, type IconName } from "./icons";
-import { SOURCE_LABEL, type SourceChoice, type SourceKind } from "./source";
+import { pipUnavailableText } from "./pip";
+import type { SourceChoice, SourceKind } from "./source";
 import type { AppState } from "./state";
 import { TranscriptView } from "./transcript";
 
@@ -25,6 +28,7 @@ export interface LiveModel {
   readonly state: LiveState;
   readonly captions: CaptionState;
   readonly floating: FloatingState;
+  readonly pair: PairId;
   readonly elapsedS: number;
 }
 
@@ -33,18 +37,6 @@ const SOURCES: readonly { readonly kind: SourceKind; readonly icon: IconName }[]
   { kind: "tab", icon: "tab" },
   { kind: "file", icon: "wave" },
 ];
-
-const SOURCE_HINT: Readonly<Record<SourceKind, string>> = {
-  mic: "Uses your default microphone. The browser asks for permission the first time.",
-  tab: "A tab, or the entire screen for all sound.",
-  file: "Replays a recording at normal speed through the same path as live audio. 16-bit PCM or 32-bit float WAV.",
-};
-
-const EMPTY_COPY: Readonly<Record<SourceKind, string>> = {
-  mic: "Press Start and speak Japanese. English appears under each line a moment after you finish it.",
-  tab: "Press Start, choose the tab with the call or video (or your entire screen), and share its audio. English appears under each line as it is spoken.",
-  file: "Choose or drop a WAV recording, then press Start. It plays at normal speed and the captions follow it.",
-};
 
 export class LiveView {
   readonly el: HTMLElement;
@@ -72,8 +64,12 @@ export class LiveView {
   private kind: SourceKind = "mic";
   private readonly shareGuide: HTMLDialogElement;
 
-  constructor(private readonly callbacks: LiveCallbacks, reducedMotion: () => boolean) {
-    this.transcript = new TranscriptView({ prefersReducedMotion: reducedMotion });
+  constructor(
+    private readonly m: Messages,
+    private readonly callbacks: LiveCallbacks,
+    reducedMotion: () => boolean,
+  ) {
+    this.transcript = new TranscriptView({ messages: m, prefersReducedMotion: reducedMotion });
 
     this.emptyTitle = h("p", { class: "empty-title" });
     this.emptyBody = h("p", { class: "empty-body" });
@@ -87,28 +83,28 @@ export class LiveView {
     this.pipNote = h("p", { class: "note pip-note", id: "pip-note", "data-role": "pip-note", hidden: true });
     this.pipButton.setAttribute("aria-describedby", "pip-note");
 
-    const toolbar = h("div", { class: "live-toolbar" }, h("div", { class: "live-title" }, h("h1", {}, "Captions"), this.sourceLine), this.pipButton);
+    const toolbar = h("div", { class: "live-toolbar" }, h("div", { class: "live-title" }, h("h1", {}, m.live.title), this.sourceLine), this.pipButton);
 
     this.fileInput = h("input", { type: "file", accept: ".wav,audio/wav,audio/x-wav,audio/wave", hidden: true, "data-role": "file-input", onchange: () => this.onFileInput() });
-    this.fileLabel = h("span", {}, "Choose WAV");
+    this.fileLabel = h("span", {}, m.source.chooseWav);
     this.fileButton = h("button", { class: "btn", type: "button", "data-role": "choose-file", onclick: () => this.fileInput.click() }, icon("upload"), this.fileLabel);
     this.hint = h("span", { class: "hint", "data-role": "source-hint" });
     this.detail = h("div", { class: "dock-detail" }, this.hint, this.fileButton, this.fileInput);
 
-    const group = h("fieldset", { class: "segmented", "data-role": "source" }, h("legend", { class: "sr-only" }, "Audio source"));
+    const group = h("fieldset", { class: "segmented", "data-role": "source" }, h("legend", { class: "sr-only" }, m.source.legend));
     for (const source of SOURCES) {
       const input = h("input", { type: "radio", name: "source", value: source.kind, "data-source": source.kind, onchange: () => this.callbacks.onChooseSource(source.kind) });
       this.radios.set(source.kind, input);
-      group.append(h("label", { class: "seg" }, input, h("span", { class: "seg-face" }, icon(source.icon), SOURCE_LABEL[source.kind])));
+      group.append(h("label", { class: "seg" }, input, h("span", { class: "seg-face" }, icon(source.icon), m.source.label[source.kind])));
     }
 
     this.actionIcon = h("span", { class: "btn-icon-slot" });
     this.actionLabel = h("span", {});
     this.action = h("button", { class: "btn btn-primary btn-lg", type: "button", "data-role": "start", onclick: () => this.onAction() }, this.actionIcon, this.actionLabel);
     this.sourceError = h("p", { class: "notice notice-error", role: "alert", "data-role": "source-error", hidden: true });
-    this.drop = h("div", { class: "drop", "data-role": "drop", hidden: true }, icon("upload"), h("p", {}, "Drop a WAV file to replay it"));
+    this.drop = h("div", { class: "drop", "data-role": "drop", hidden: true }, icon("upload"), h("p", {}, m.source.dropHint));
 
-    this.shareGuide = shareGuideDialog(() => this.callbacks.onStart());
+    this.shareGuide = shareGuideDialog(m, () => this.callbacks.onStart());
 
     this.el = h(
       "section",
@@ -145,16 +141,16 @@ export class LiveView {
     const kind = state.source.kind;
     this.kind = kind;
     const idle = state.kind === "ready";
-    this.transcript.render(captions);
+    this.transcript.render(captions, model.pair);
     setText(this.sourceLine, this.describeSource(state, model.elapsedS));
     this.paintFloating(model.floating);
-    this.paintEmpty(state);
+    this.paintEmpty(state, model.pair);
     this.paintDock(state, idle, kind);
   }
 
   private describeSource(state: LiveState, elapsedS: number): string {
-    const label = SOURCE_LABEL[state.source.kind];
-    if (state.kind === "running" || state.kind === "stopping") return `${label}, ${formatTimestamp(elapsedS)}`;
+    const label = this.m.source.label[state.source.kind];
+    if (state.kind === "running" || state.kind === "stopping") return this.m.live.sourceRunning(label, formatTimestamp(elapsedS));
     if (state.source.kind === "file" && state.source.pick !== null) return state.source.pick.name;
     return label;
   }
@@ -164,33 +160,34 @@ export class LiveView {
     this.pipButton.disabled = floating.kind === "unavailable" || floating.kind === "opening";
     setAttr(this.pipButton, "aria-pressed", floating.kind === "unavailable" ? null : String(open));
     setAttr(this.pipButton, "data-pip", floating.kind);
-    setText(this.pipLabel, open ? "Close floating captions" : floating.kind === "opening" ? "Opening" : "Floating captions");
-    const note = floating.kind === "unavailable" ? floating.reason : floating.kind === "closed" ? (floating.error ?? "") : "";
+    setText(this.pipLabel, open ? this.m.live.floatingClose : floating.kind === "opening" ? this.m.live.floatingOpening : this.m.live.floatingOpen);
+    const note = floating.kind === "unavailable" ? pipUnavailableText(floating.reason, this.m) : floating.kind === "closed" ? (floating.error ?? "") : "";
     setText(this.pipNote, note);
     setHidden(this.pipNote, note === "");
     setAttr(this.pipNote, "data-tone", floating.kind === "closed" ? "error" : null);
   }
 
-  private paintEmpty(state: LiveState): void {
+  private paintEmpty(state: LiveState, pair: PairId): void {
+    const text = this.m.live;
     const kind = state.source.kind;
     const listening = state.kind === "running";
     setAttr(this.transcript.emptySlot, "data-state", state.kind);
     setHidden(this.emptyListening, !listening);
     if (state.kind === "ready") {
-      setText(this.emptyTitle, "Ready");
-      setText(this.emptyBody, EMPTY_COPY[kind]);
-      setText(this.emptyMeta, `Models loaded in ${formatMs(state.loadMs)}.`);
+      setText(this.emptyTitle, text.readyTitle);
+      setText(this.emptyBody, text.emptyCopy[pair][kind]);
+      setText(this.emptyMeta, text.modelsLoadedIn(formatMs(state.loadMs, this.m.units)));
     } else if (state.kind === "starting") {
-      setText(this.emptyTitle, "Waiting for access");
-      setText(this.emptyBody, kind === "tab" ? "Choose a tab in the share dialog." : kind === "mic" ? "Allow microphone access in the browser prompt." : "Reading the file.");
+      setText(this.emptyTitle, text.waitingTitle);
+      setText(this.emptyBody, text.waitingBody[kind]);
       setText(this.emptyMeta, "");
     } else if (state.kind === "running") {
-      setText(this.emptyTitle, "Listening");
-      setText(this.emptyBody, "Captions appear a moment after each phrase ends.");
+      setText(this.emptyTitle, text.listeningTitle);
+      setText(this.emptyBody, text.listeningBody);
       setText(this.emptyMeta, "");
     } else {
-      setText(this.emptyTitle, "Finishing");
-      setText(this.emptyBody, "Speech already heard is still being translated.");
+      setText(this.emptyTitle, text.finishingTitle);
+      setText(this.emptyBody, text.finishingBody);
       setText(this.emptyMeta, "");
     }
   }
@@ -203,7 +200,7 @@ export class LiveView {
     setText(this.hint, this.hintFor(state.source));
     setHidden(this.fileButton, kind !== "file");
     this.fileButton.disabled = !idle;
-    setText(this.fileLabel, state.source.kind === "file" && state.source.pick !== null ? "Choose another" : "Choose WAV");
+    setText(this.fileLabel, state.source.kind === "file" && state.source.pick !== null ? this.m.source.chooseAnother : this.m.source.chooseWav);
     const err = state.kind === "ready" ? state.sourceError : null;
     setText(this.sourceError, err ?? "");
     setHidden(this.sourceError, err === null);
@@ -218,33 +215,32 @@ export class LiveView {
     this.actionIcon.replaceChildren(
       state.kind === "starting" || state.kind === "stopping" ? h("span", { class: "spinner", "aria-hidden": "true" }) : icon(mode === "stop" ? "stop" : "play"),
     );
-    setText(this.actionLabel, state.kind === "starting" ? "Starting" : state.kind === "stopping" ? "Finishing" : mode === "stop" ? "Stop" : "Start captions");
+    const text = this.m.live;
+    setText(this.actionLabel, state.kind === "starting" ? text.starting : state.kind === "stopping" ? text.finishing : mode === "stop" ? text.stop : text.start);
   }
 
   private hintFor(source: SourceChoice): string {
-    if (source.kind !== "file") return SOURCE_HINT[source.kind];
-    return source.pick === null ? SOURCE_HINT.file : `${source.pick.name}, ${formatBytes(source.pick.bytes.length)}, ${Math.round(source.pick.sampleRate / 100) / 10} kHz. Plays at normal speed.`;
+    const { hint, fileHint } = this.m.source;
+    if (source.kind !== "file") return hint[source.kind];
+    return source.pick === null ? hint.file : fileHint(source.pick.name, formatBytes(source.pick.bytes.length), Math.round(source.pick.sampleRate / 100) / 10);
   }
 }
 
-function shareGuideDialog(onContinue: () => void): HTMLDialogElement {
+const rich = (text: RichText): (Node | string)[] => text.map((part) => (typeof part === "string" ? part : h("b", {}, part.strong)));
+
+function shareGuideDialog(m: Messages, onContinue: () => void): HTMLDialogElement {
+  const guide = m.live.shareGuide;
   const dialog: HTMLDialogElement = h(
     "dialog",
     { class: "share-guide", "data-role": "share-guide", "aria-labelledby": "share-guide-title" },
-    h("h2", { id: "share-guide-title" }, "Share audio"),
-    h("p", {}, "Chrome will ask what to share next."),
-    h(
-      "ol",
-      {},
-      h("li", {}, "Pick the tab with the call or video. For sound from other apps, pick ", h("b", {}, "Entire screen"), "."),
-      h("li", {}, "Turn on ", h("b", {}, "Share tab audio"), " (or ", h("b", {}, "Share system audio"), ")."),
-      h("li", {}, "Click ", h("b", {}, "Share"), "."),
-    ),
+    h("h2", { id: "share-guide-title" }, guide.title),
+    h("p", {}, guide.intro),
+    h("ol", {}, ...guide.steps.map((step) => h("li", {}, ...rich(step)))),
     h(
       "div",
       { class: "share-guide-actions" },
-      h("button", { class: "btn", type: "button", onclick: () => dialog.close() }, "Cancel"),
-      h("button", { class: "btn btn-primary", type: "button", "data-role": "share-continue", onclick: () => { dialog.close(); onContinue(); } }, "Continue"),
+      h("button", { class: "btn", type: "button", onclick: () => dialog.close() }, guide.cancel),
+      h("button", { class: "btn btn-primary", type: "button", "data-role": "share-continue", onclick: () => { dialog.close(); onContinue(); } }, guide.continue),
     ),
   );
   return dialog;

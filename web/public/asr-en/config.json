@@ -1,0 +1,21 @@
+{
+  "sample_rate": 16000,
+  "n_fft": 512,
+  "win_length": 400,
+  "hop_length": 160,
+  "n_mels": 128,
+  "pad_to": 16,
+  "d_model": 1024,
+  "pred_layers": 2,
+  "state_width": 640,
+  "vocab_size": 1024,
+  "durations": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "max_symbols": 10,
+  "source_repo": "nvidia/parakeet-tdt-0.6b-v2"
+}

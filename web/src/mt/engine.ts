@@ -176,7 +176,7 @@ export class CatEngine {
       attention_mask: new Tensor("int64", new BigInt64Array(ids.length).fill(1n), [1, ids.length]),
       max_new_tokens: request.maxTokens,
       do_sample: false,
-      logits_processor: [this.ban] as unknown as NonNullable<GenerateParams["logits_processor"]>,
+      logits_processor: (request.banSourceScript ? [this.ban] : []) as unknown as NonNullable<GenerateParams["logits_processor"]>,
       stopping_criteria: [new StopOnAbort(signal)],
       streamer: stream as unknown as NonNullable<GenerateParams["streamer"]>,
     });

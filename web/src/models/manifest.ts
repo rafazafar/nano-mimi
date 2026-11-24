@@ -1,4 +1,4 @@
-import { ASR_MODELS } from "../asr/models";
+import { asrModels } from "../asr/models";
 import type { Manifest, ModelSpec } from "./types";
 
 /**
@@ -33,4 +33,4 @@ export const CAT_MODEL: ModelSpec = {
  * capability check (`asrBackend`) is the app's job. The setup page can also load a manifest
  * from `?manifest=<url>` and an endpoint from `?endpoint=<url>` for testing.
  */
-export const DEFAULT_MANIFEST: Manifest = { models: [...ASR_MODELS.webgpu, CAT_MODEL] };
+export const DEFAULT_MANIFEST: Manifest = { models: [...asrModels("ja-en", "webgpu"), CAT_MODEL] };

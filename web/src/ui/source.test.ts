@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { en } from "./i18n.en";
 import { parseWavPick, toSourceSpec } from "./source";
 
 /** A canonical 44-byte header followed by 16-bit mono PCM. */
@@ -27,20 +28,20 @@ function wav(frames: number, opts: { rate?: number; code?: number; bits?: number
 describe("parseWavPick", () => {
   it("accepts a decodable WAV and keeps its bytes and rate", () => {
     const bytes = wav(1600, { rate: 48_000 });
-    const result = parseWavPick("meeting.wav", bytes);
+    const result = parseWavPick("meeting.wav", bytes, en);
     expect(result).toEqual({ ok: true, pick: { name: "meeting.wav", bytes, sampleRate: 48_000 } });
   });
 
   it("refuses an empty file, a non-WAV and a WAV with no audio, each by name", () => {
-    expect(parseWavPick("a.wav", new Uint8Array(0))).toEqual({ ok: false, message: "a.wav is empty." });
-    const notWav = parseWavPick("notes.txt", new TextEncoder().encode("hello, this is not audio at all"));
+    expect(parseWavPick("a.wav", new Uint8Array(0), en)).toEqual({ ok: false, message: "a.wav is empty." });
+    const notWav = parseWavPick("notes.txt", new TextEncoder().encode("hello, this is not audio at all"), en);
     expect(notWav.ok).toBe(false);
     if (!notWav.ok) expect(notWav.message).toMatch(/^notes\.txt is not a WAV this app can replay \(Not a RIFF WAVE file\)/);
-    expect(parseWavPick("quiet.wav", wav(0))).toEqual({ ok: false, message: "quiet.wav contains no audio." });
+    expect(parseWavPick("quiet.wav", wav(0), en)).toEqual({ ok: false, message: "quiet.wav contains no audio." });
   });
 
   it("refuses formats the session cannot decode", () => {
-    const result = parseWavPick("a.wav", wav(100, { bits: 24 }));
+    const result = parseWavPick("a.wav", wav(100, { bits: 24 }), en);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.message).toContain("Unsupported WAV format");
   });

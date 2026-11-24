@@ -1,3 +1,4 @@
+import type { PairId } from "../core/pair";
 import type { ContextTurn, JaText } from "../core/types";
 import type { Manifest } from "../models/types";
 import type { LoadInfo, MtEvent, MtOutcome, MtRequest } from "./protocol";
@@ -32,8 +33,8 @@ export class MtClient {
     worker.addEventListener("message", (e: MessageEvent<MtEvent>) => this.onEvent(e.data));
   }
 
-  /** Starts the worker and loads CAT from the model store. The files must already be downloaded. */
-  static async start(manifest: Manifest, modelId: string): Promise<MtClient> {
+  /** Starts the worker for `pair` and loads CAT from the model store. The files must already be downloaded. */
+  static async start(manifest: Manifest, modelId: string, pair: PairId): Promise<MtClient> {
     const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
     const load = await new Promise<LoadInfo>((resolve, reject) => {
       const onMessage = (e: MessageEvent<MtEvent>): void => {
@@ -44,7 +45,7 @@ export class MtClient {
       };
       worker.addEventListener("message", onMessage);
       worker.addEventListener("error", (e) => reject(new Error(e.message)), { once: true });
-      const init: MtRequest = { type: "init", manifest, modelId };
+      const init: MtRequest = { type: "init", manifest, modelId, pair };
       worker.postMessage(init);
     });
     return new MtClient(worker, load);

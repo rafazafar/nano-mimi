@@ -15,7 +15,7 @@ async function init(request: Extract<MtRequest, { type: "init" }>): Promise<void
     const engine = await CatEngine.load(request.manifest, request.modelId);
     scheduler = new MtScheduler(
       (job, signal, onToken) =>
-        translateWithRetries(asJaText(job.ja), job.context, engine.generate, { preview: job.preview, signal, onToken }),
+        translateWithRetries(asJaText(job.ja), job.context, engine.generate, { pair: request.pair, preview: job.preview, signal, onToken }),
       post,
     );
     post({ type: "ready", load: engine.load });
