@@ -1,0 +1,87 @@
+/* Small screens ---------------------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .shell {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .layout {
+    display: block;
+  }
+
+  .stage {
+    overflow: visible;
+  }
+
+  .live {
+    height: 82dvh;
+    min-height: 30rem;
+  }
+
+  .side {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    padding: var(--s-2) var(--s-3);
+  }
+
+  .brand-pair {
+    display: none;
+  }
+
+  .dock {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-3);
+    padding: var(--s-3);
+  }
+
+  .segmented {
+    justify-self: stretch;
+  }
+
+  .seg {
+    flex: 1;
+  }
+
+  .seg-face {
+    flex: 1;
+    justify-content: center;
+    padding-inline: 0.4rem;
+  }
+
+  .live-toolbar,
+  .pip-note {
+    padding-inline: var(--s-3);
+  }
+
+  .transcript {
+    padding-inline: var(--s-2);
+  }
+
+  .row {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    column-gap: var(--s-2);
+    padding-inline: var(--s-2);
+  }
+
+  .row-en {
+    font-size: 1.3125rem;
+  }
+
+  .file {
+    grid-template-columns: minmax(0, 1fr) 7rem;
+  }
+
+  .file .meter {
+    display: none;
+  }
+
+  .setup {
+    padding: var(--s-5) var(--s-4);
+  }
+}

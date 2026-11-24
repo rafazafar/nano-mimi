@@ -1,6 +1,6 @@
 import { ASR_MODELS, type AsrBackend } from "../asr/models";
 import { CAT_MODEL } from "../models/manifest";
-import { totalBytes, type FileRef, type FileState, type Manifest } from "../models/types";
+import { DEFAULT_ENDPOINT, formatBytes, totalBytes, type FileRef, type FileState, type Manifest } from "../models/types";
 
 /** Where the models come from: the built-in default, an endpoint given in the URL, or one that did not parse. */
 export type EndpointChoice =
@@ -25,6 +25,23 @@ export function parseEndpointParam(search: string): EndpointChoice {
   }
 }
 
+const RAW_ENDPOINT_SHOWN = 80;
+
+/** One sentence telling the viewer where the bytes come from, and why if the address asked for something we refused. */
+export function describeEndpoint(choice: EndpointChoice): string {
+  const fallback = new URL(DEFAULT_ENDPOINT).host;
+  switch (choice.kind) {
+    case "default":
+      return `Downloads come from ${fallback}.`;
+    case "custom":
+      return `Downloads come from ${choice.url}, as the endpoint in the address asks.`;
+    case "invalid": {
+      const raw = choice.raw.length > RAW_ENDPOINT_SHOWN ? `${choice.raw.slice(0, RAW_ENDPOINT_SHOWN)}...` : choice.raw;
+      return `The endpoint in the address (${raw}) is not a plain http or https address, so it was ignored. Downloads come from ${fallback}.`;
+    }
+  }
+}
+
 /** The files each speech backend needs, plus the translator. The endpoint is left unset for the default. */
 export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice): Manifest {
   const models = [...ASR_MODELS[backend], CAT_MODEL];
@@ -38,6 +55,13 @@ export function parseBackend(raw: string | null): AsrBackend | null {
 }
 
 export const fileKey = (ref: FileRef): string => `${ref.modelId}\u0000${ref.path}`;
+
+/** The setup screen's main button: what pressing it will do, with the bytes it involves. */
+export function setupActionLabel(setup: { readonly totalBytes: number; readonly missingBytes: number }): string {
+  if (setup.missingBytes <= 0) return "Load models";
+  if (setup.missingBytes < setup.totalBytes) return `Resume download, ${formatBytes(setup.missingBytes)} left`;
+  return `Download ${formatBytes(setup.totalBytes)}`;
+}
 
 export interface FileProgress {
   readonly path: string;
