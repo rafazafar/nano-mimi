@@ -59,6 +59,8 @@ export class ModelStore {
   private readonly retries: number;
   private readonly states = new Map<string, FileState>();
   private grant: StorageGrant = "best-effort";
+  /** Set once the primary endpoint has failed; later downloads go straight to the fallback. */
+  private onFallback = false;
 
   constructor(private readonly opts: ModelStoreOptions) {
     this.manifest = opts.manifest;
@@ -158,6 +160,11 @@ export class ModelStore {
           this.setState(ref, { kind: "failed", reason: `${e.message}; gave up after ${attempt + 1} attempts` });
           return;
         }
+        if (this.manifest.fallbackEndpoint !== undefined && !this.onFallback) {
+          // Resume the same file from the mirror, from the bytes already on disk.
+          this.onFallback = true;
+          continue;
+        }
         this.setState(ref, { kind: "failed", reason: e instanceof Error ? e.message : String(e) });
         return;
       }
@@ -179,7 +186,7 @@ export class ModelStore {
     const headers = offset > 0 ? { Range: `bytes=${offset}-` } : undefined;
     const init: RequestInit = headers === undefined ? {} : { headers };
     if (signal !== undefined) init.signal = signal;
-    const res = await this.fetchFn(fileUrl(this.manifest, model, file), init);
+    const res = await this.fetchFn(fileUrl(this.manifest, model, file, this.onFallback ? this.manifest.fallbackEndpoint : undefined), init);
     if (res.status === 206) {
       const m = /^bytes (\d+)-/.exec(res.headers.get("Content-Range") ?? "");
       if (m?.[1] === undefined || Number(m[1]) !== offset) throw new Error("server returned the wrong byte range");

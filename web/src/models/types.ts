@@ -26,6 +26,8 @@ export interface ModelSpec {
 export interface Manifest {
   /** Base download endpoint, no trailing slash. Defaults to huggingface.co. */
   readonly endpoint?: string;
+  /** Mirror tried when the endpoint fails (network error, HTTP error, or a dropped connection). */
+  readonly fallbackEndpoint?: string;
   readonly models: readonly ModelSpec[];
 }
 
@@ -63,9 +65,9 @@ export function formatBytes(n: number): string {
   return `${Math.round(n / 1e3)} KB`;
 }
 
-export function fileUrl(manifest: Manifest, model: ModelSpec, file: FileSpec): string {
+export function fileUrl(manifest: Manifest, model: ModelSpec, file: FileSpec, base = manifest.endpoint ?? DEFAULT_ENDPOINT): string {
   if (file.url !== undefined) return file.url;
-  const endpoint = (manifest.endpoint ?? DEFAULT_ENDPOINT).replace(/\/+$/, "");
+  const endpoint = base.replace(/\/+$/, "");
   const path = file.path.split("/").map(encodeURIComponent).join("/");
   return `${endpoint}/${model.repo}/resolve/${encodeURIComponent(model.revision)}/${path}`;
 }
@@ -79,10 +81,16 @@ export function parseManifest(input: unknown): Manifest {
   const obj = asRecord(input, "manifest");
   const endpoint = obj["endpoint"];
   if (endpoint !== undefined && typeof endpoint !== "string") throw new Error("manifest.endpoint must be a string");
+  const fallbackEndpoint = obj["fallbackEndpoint"];
+  if (fallbackEndpoint !== undefined && typeof fallbackEndpoint !== "string") throw new Error("manifest.fallbackEndpoint must be a string");
   const modelsRaw = obj["models"];
   if (!Array.isArray(modelsRaw)) throw new Error("manifest.models must be an array");
   const models = modelsRaw.map((m, i) => parseModel(m, `models[${i}]`));
-  return endpoint === undefined ? { models } : { endpoint, models };
+  return {
+    ...(endpoint === undefined ? {} : { endpoint }),
+    ...(fallbackEndpoint === undefined ? {} : { fallbackEndpoint }),
+    models,
+  };
 }
 
 function asRecord(v: unknown, where: string): Record<string, unknown> {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ASR_MODELS, HAAS_DECODER, HAAS_FP16, HAAS_INT8, HAAS_TABLES } from "../asr/models";
 import { CAT_MODEL } from "../models/manifest";
 import type { FileState } from "../models/types";
-import { BACKEND_KEY, buildManifest, downloadProgress, fileKey, parseBackend, describeEndpoint, parseEndpointParam, setupActionLabel } from "./setupModel";
+import { BACKEND_KEY, MIRROR_ENDPOINT, buildManifest, downloadProgress, fileKey, parseBackend, describeEndpoint, parseEndpointParam, setupActionLabel } from "./setupModel";
 
 describe("parseEndpointParam", () => {
   it("is the default without the parameter", () => {
@@ -28,8 +28,11 @@ describe("parseEndpointParam", () => {
 });
 
 describe("buildManifest", () => {
-  it("lists the backend's ASR files and the translator, with the endpoint only when given", () => {
-    expect(buildManifest("webgpu", { kind: "default" })).toEqual({ models: [HAAS_TABLES, HAAS_FP16, HAAS_DECODER, CAT_MODEL] });
+  it("lists the backend's ASR files and the translator; the mirror backs the default endpoint, not a custom one", () => {
+    expect(buildManifest("webgpu", { kind: "default" })).toEqual({
+      fallbackEndpoint: MIRROR_ENDPOINT,
+      models: [HAAS_TABLES, HAAS_FP16, HAAS_DECODER, CAT_MODEL],
+    });
     expect(buildManifest("wasm", { kind: "custom", url: "http://localhost:9" })).toEqual({
       endpoint: "http://localhost:9",
       models: [HAAS_TABLES, HAAS_INT8, HAAS_DECODER, CAT_MODEL],

@@ -40,9 +40,12 @@ export function describeEndpoint(choice: EndpointChoice): string {
   }
 }
 
+/** The MimiVox proxy (workers/hf-proxy): serves pinned files from its R2 copy, else streams them from the Hub. */
+export const MIRROR_ENDPOINT = "https://hf.zafar.jp";
+
 export function buildManifest(backend: AsrBackend, endpoint: EndpointChoice): Manifest {
   const models = [...ASR_MODELS[backend], CAT_MODEL];
-  return endpoint.kind === "custom" ? { endpoint: endpoint.url, models } : { models };
+  return endpoint.kind === "custom" ? { endpoint: endpoint.url, models } : { fallbackEndpoint: MIRROR_ENDPOINT, models };
 }
 
 export const BACKEND_KEY = "mimivox.asr-backend.v1";

@@ -142,6 +142,29 @@ describe("ModelStore", () => {
     expect(new Uint8Array(await second.getArrayBuffer("m", "dir/a.onnx"))).toEqual(t.body);
   });
 
+  it("resumes from the fallback endpoint when the primary drops mid-file", async () => {
+    const t = setup();
+    t.server.dieAfter = CHUNK * 2 + 500;
+    const store = new ModelStore({ manifest: { ...t.manifest, fallbackEndpoint: "https://fallback.test" }, store: t.fs, fetch: t.server.fetch, chunkBytes: CHUNK });
+    await store.ensureAll();
+    expect(store.state(t.ref)).toEqual({ kind: "ready" });
+    expect(t.server.requests.map((r) => [new URL(r.url).host, r.range])).toEqual([
+      ["mirror.test", null],
+      ["fallback.test", `bytes=${CHUNK * 2}-`],
+    ]);
+    expect(new Uint8Array(await store.getArrayBuffer("m", "dir/a.onnx"))).toEqual(t.body);
+  });
+
+  it("switches to the fallback endpoint when the primary answers with an error", async () => {
+    const t = setup();
+    const fetchFn: typeof fetch = async (input, init) =>
+      new URL(String(input)).host === "mirror.test" ? new Response("down", { status: 503 }) : t.server.fetch(input, init);
+    const store = new ModelStore({ manifest: { ...t.manifest, fallbackEndpoint: "https://fallback.test" }, store: t.fs, fetch: fetchFn, chunkBytes: CHUNK });
+    await store.ensureAll();
+    expect(store.state(t.ref)).toEqual({ kind: "ready" });
+    expect(t.server.requests.map((r) => new URL(r.url).host)).toEqual(["fallback.test"]);
+  });
+
   it("restarts from zero when the server ignores Range", async () => {
     const t = setup();
     t.server.dieAfter = CHUNK * 2 + 10;
