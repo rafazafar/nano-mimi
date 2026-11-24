@@ -52,3 +52,7 @@ Place this dict in the `PayloadContent` array of a profile, or enter the same ke
 To try it without MDM, run `defaults write local.mimivox.app ModelDownloadEndpoint https://mirror.example.com`. A value set this way acts like the user's own setting and is not locked.
 
 Use **Test** in Settings to check the address. It asks the mirror for the translation model's `config.json`, which is the first file a real download fetches.
+
+## Cloudflare Worker proxy
+
+If you cannot reach huggingface.co but can reach Cloudflare, deploy the anonymous proxy in [`workers/hf-proxy`](../workers/hf-proxy/README.md) and use its address as the download source. It needs no token and stores nothing.
