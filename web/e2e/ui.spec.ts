@@ -165,6 +165,13 @@ test.describe("source picker and start", () => {
     await expect(role(page, "start")).toHaveText("Stop");
   });
 
+  test("browser/system audio is the default where the browser can capture it, the mic elsewhere", async ({ page }) => {
+    await reachReady(page, { tab: "1" });
+    await expect(page.locator("label.seg", { hasText: "Browser / system audio" }).locator("input")).toBeChecked();
+    await reachReady(page);
+    await expect(page.locator("label.seg", { hasText: "Microphone" }).locator("input")).toBeChecked();
+  });
+
   test("tab audio explains how to share sound, and a share without audio is recoverable", async ({ page }) => {
     await reachReady(page);
     await page.locator("label.seg", { hasText: "Browser / system audio" }).click();

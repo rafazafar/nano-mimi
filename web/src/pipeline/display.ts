@@ -12,6 +12,7 @@ import { prepareLine, type Line } from "./line";
 import type { PartialEnCoordinator } from "./partialEn";
 import type { Clock, EnSource, MtEngine, PipelineEvent, RowId, Timing } from "./types";
 import { asRowId } from "./types";
+import type { MtOutcome, MtResult } from "../mt/protocol";
 
 export type DisplayInput =
   /** A decoded segment of the utterance in flight (streaming engines only). */
@@ -236,13 +237,21 @@ export class DisplayStage {
     const hit = cache.lookup(sent);
     if (hit !== undefined) return { en: hit, source: "cache" };
 
-    const job = gpu.submit("mt-final", async (signal) => {
-      const translation = mt.translate(sent, turns, {
-        preview: false,
-        onToken: (delta) => emit({ kind: "en_token", id: rowId, delta }),
-      });
-      signal.addEventListener("abort", () => translation.cancel(), { once: true });
-      return translation.outcome;
+    const job = gpu.submit("mt-final", async (signal): Promise<MtOutcome> => {
+      let joined: MtResult | null = null;
+      for (const segment of this.#strategy.translate.segments(sent)) {
+        const translation = mt.translate(segment, turns, {
+          preview: false,
+          onToken: (delta) => emit({ kind: "en_token", id: rowId, delta }),
+        });
+        const cancel = (): void => translation.cancel();
+        signal.addEventListener("abort", cancel, { once: true });
+        const outcome = await translation.outcome;
+        signal.removeEventListener("abort", cancel);
+        if (outcome.kind !== "done") return outcome;
+        joined = joined === null ? outcome.result : { ...outcome.result, en: asEnText(joined.en + outcome.result.en) };
+      }
+      return joined === null ? { kind: "skipped" } : { kind: "done", result: joined };
     });
     if (this.#current !== null) this.#release(this.#current);
     try {

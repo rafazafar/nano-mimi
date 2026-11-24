@@ -65,7 +65,7 @@ export type AppAction =
   | { readonly type: "download-stopped"; readonly setup: Setup; readonly error: string | null }
   | { readonly type: "models-ready"; readonly setup: Setup }
   | { readonly type: "phase"; readonly phase: EnginePhase; readonly status: PhaseStatus }
-  | { readonly type: "engines-ready"; readonly loadMs: number }
+  | { readonly type: "engines-ready"; readonly loadMs: number; readonly source: "mic" | "tab" }
   | { readonly type: "engines-failed"; readonly message: string }
   | { readonly type: "retry" }
   /** The user picked the other direction. The app stored it and starts over, checking the new pair's models. */
@@ -117,7 +117,7 @@ export function reduceApp(state: AppState, action: AppAction): AppState {
       return state.kind === "loading-engines" ? { ...state, phases: { ...state.phases, [action.phase]: action.status } } : state;
     case "engines-ready":
       return state.kind === "loading-engines"
-        ? { kind: "ready", setup: state.setup, loadMs: action.loadMs, source: { kind: "mic" }, sourceError: null }
+        ? { kind: "ready", setup: state.setup, loadMs: action.loadMs, source: { kind: action.source }, sourceError: null }
         : state;
     case "engines-failed":
       return state.kind === "loading-engines"

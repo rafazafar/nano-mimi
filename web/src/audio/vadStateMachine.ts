@@ -8,6 +8,8 @@ export interface VadTuning {
   readonly minSpeechMs: number;
   readonly minSpeechS: number;
   readonly maxEmitS: number;
+  /** Once an utterance has run this long, a pause of `softSilenceMs` ends it. Omitted: only `minSilenceMs` does. */
+  readonly soft?: { readonly afterS: number; readonly silenceMs: number };
 }
 
 /** The values `config.apply_live_vad_overrides()` leaves on the `fast` latency preset. */
@@ -18,6 +20,16 @@ export const LIVE_TUNING: VadTuning = {
   minSpeechMs: 250,
   minSpeechS: 0.6,
   maxEmitS: 15,
+};
+
+/**
+ * English talk runs on with short breaths between clauses, so a 400 ms pause can be 15 s away and a caption waits
+ * for it. After 3 s, a 160 ms pause ends the line, and no line runs past 10 s.
+ */
+export const EN_LIVE_TUNING: VadTuning = {
+  ...LIVE_TUNING,
+  maxEmitS: 10,
+  soft: { afterS: 3, silenceMs: 160 },
 };
 
 const AMP_FLOOR = Math.fround(0.01);
@@ -111,6 +123,8 @@ export class VadStateMachine {
   readonly #minSilenceWindows: number;
   readonly #minSpeechSamples: number;
   readonly #maxEmitSamples: number;
+  readonly #softAfterSamples: number;
+  readonly #softSilenceWindows: number;
 
   #position = 0;
   #inSpeech = false;
@@ -135,6 +149,9 @@ export class VadStateMachine {
     );
     this.#minSpeechSamples = Math.trunc(SAMPLE_RATE * tuning.minSpeechS);
     this.#maxEmitSamples = Math.trunc(SAMPLE_RATE * tuning.maxEmitS);
+    this.#softAfterSamples = tuning.soft === undefined ? Infinity : Math.trunc(SAMPLE_RATE * tuning.soft.afterS);
+    this.#softSilenceWindows =
+      tuning.soft === undefined ? this.#minSilenceWindows : Math.max(1, Math.trunc((SAMPLE_RATE * tuning.soft.silenceMs) / 1000 / WINDOW));
   }
 
   /** Consumes the next window of the stream together with the model's P(speech) for it. */
@@ -172,7 +189,8 @@ export class VadStateMachine {
     } else {
       this.#silence.append(at, win.slice());
       this.#silenceWindows++;
-      if (this.#silenceWindows >= this.#minSilenceWindows) {
+      const needed = this.#speech.length >= this.#softAfterSamples ? this.#softSilenceWindows : this.#minSilenceWindows;
+      if (this.#silenceWindows >= needed) {
         candidates.push(...this.#close((this.#silenceWindows * WINDOW) / SAMPLE_RATE));
         resetScorer = true;
       }

@@ -4,7 +4,7 @@ import { groupDigits, unsupportedNumbers } from "./numbers";
 import type { PairId } from "./pair";
 import { enJaPromptAndTokens, promptAndTokens, type PromptChoice } from "./prompt";
 import { cpLength, isMostlyEnglish, jaContent, normalizeEnglishPunctuation, normalizePunctuation } from "./text";
-import type { ContextTurn, EnText, JaText } from "./types";
+import { asJaText, type ContextTurn, type EnText, type JaText } from "./types";
 
 /** How the source's numbers are checked against the translation, with the retry's rewrite of the source. */
 export interface NumberCheck {
@@ -26,6 +26,8 @@ export interface PairStrategy {
     retryWithoutContext(first: { readonly en: EnText; readonly raw: string }, context: readonly ContextTurn[], src: JaText): boolean;
     /** Null when numbers are not checked. */
     readonly numbers: NumberCheck | null;
+    /** The pieces a line is translated in, one model call each, joined in order. */
+    segments(src: JaText): readonly JaText[];
   };
   readonly source: {
     normalizePunctuation(text: JaText): JaText;
@@ -42,6 +44,19 @@ export interface PairStrategy {
 }
 
 const CONTEXT_MIN_CHARS = 6;
+const SEGMENT_CHARS = 120;
+
+/** Splits English after `.`, `?` or `!` and packs whole sentences into groups of at most `max` characters. */
+export function sentenceGroups(src: JaText, max: number): JaText[] {
+  const sentences = src.split(/(?<=[.?!])\s+/u).filter((s) => s !== "");
+  const groups: string[] = [];
+  for (const sentence of sentences) {
+    const last = groups.length - 1;
+    if (last >= 0 && groups[last]!.length + 1 + sentence.length <= max) groups[last] += ` ${sentence}`;
+    else groups.push(sentence);
+  }
+  return groups.length === 0 ? [src] : groups.map(asJaText);
+}
 const longEnough = (src: JaText): boolean => cpLength(jaContent(src)) >= CONTEXT_MIN_CHARS;
 
 const jaEn: PairStrategy = {
@@ -49,6 +64,7 @@ const jaEn: PairStrategy = {
     banSourceScript: true,
     prompt: promptAndTokens,
     clean: cleanCat,
+    segments: (src) => [src],
     retryWithoutContext: (first, context, src) =>
       first.en === "" || echoesContext(first.en, context, src) || tooShort(first.en, src) || isLabelled(first.raw),
     numbers: { unsupported: unsupportedNumbers, regroup: groupDigits },
@@ -71,6 +87,8 @@ const enJa: PairStrategy = {
     retryWithoutContext: (first, context, src) => first.en === "" || echoesContextEnJa(first.en, context, src),
     // Source numbers are digits or English words and the output may use kanji numerals, so no check is right.
     numbers: null,
+    // CAT loops or drops clauses on a long paragraph, so a long line goes in sentence groups.
+    segments: (src) => sentenceGroups(src, SEGMENT_CHARS),
   },
   source: {
     normalizePunctuation: normalizeEnglishPunctuation,

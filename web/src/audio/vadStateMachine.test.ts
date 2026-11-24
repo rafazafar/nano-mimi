@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFixture } from "../test/fixtures";
 import { StreamingVad, emitted, type WindowScorer } from "./streamingVad";
-import { LIVE_TUNING, WINDOW, type Candidate } from "./vadStateMachine";
+import { EN_LIVE_TUNING, LIVE_TUNING, WINDOW, type Candidate, type VadTuning } from "./vadStateMachine";
 
 type Segment = readonly [windows: number, prob: number, amplitude: number];
 
@@ -52,8 +52,9 @@ async function run(
   audio: Float32Array,
   probs: readonly number[],
   slice: number,
+  tuning: VadTuning = LIVE_TUNING,
 ): Promise<{ candidates: Candidate[]; waits: number[] }> {
-  const vad = new StreamingVad(LIVE_TUNING, new ScriptedScorer(probs));
+  const vad = new StreamingVad(tuning, new ScriptedScorer(probs));
   const candidates: Candidate[] = [];
   const waits: number[] = [];
   for (let i = 0; i < audio.length; i += slice) {
@@ -98,4 +99,20 @@ describe("scripted VAD cases recorded from the Python state machine", () => {
       }
     });
   }
+});
+
+describe("the English tuning", () => {
+  // 4 s of speech, a 192 ms breath, then 2 s more.
+  const { audio, probs } = scriptAudio([
+    [125, 0.9, 0.2],
+    [6, 0.05, 0.0005],
+    [62, 0.9, 0.2],
+    [20, 0.05, 0.0005],
+  ]);
+  const lengths = async (tuning: VadTuning) => (await run(audio, probs, 4096, tuning)).candidates.filter((c) => c.samples !== null).map((c) => c.end - c.start);
+
+  it("ends a line on a short breath once it has run 3 s; the Japanese tuning does not", async () => {
+    expect(await lengths(EN_LIVE_TUNING)).toHaveLength(2);
+    expect(await lengths(LIVE_TUNING)).toHaveLength(1);
+  });
 });
