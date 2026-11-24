@@ -1,0 +1,73 @@
+{
+  "family": "numbers",
+  "functions": {
+    "group_digits": [
+      {"input": "約7000の島々、12345人、1789年、2024年度、3.1415", "output": "約7,000の島々、12,345人、1789年、2024年度、3.1415"},
+      {"input": "7000", "output": "7,000"},
+      {"input": "999", "output": "999"},
+      {"input": "1000", "output": "1,000"},
+      {"input": "1,000と10000", "output": "1,000と10,000"},
+      {"input": "1789年", "output": "1789年"},
+      {"input": "12345年", "output": "12345年"},
+      {"input": "12345 年", "output": "12345 年"},
+      {"input": "1.2345", "output": "1.2345"},
+      {"input": "0.12345", "output": "0.12345"},
+      {"input": "1234.5", "output": "1234.5"},
+      {"input": "1234567", "output": "1,234,567"},
+      {"input": "電話は0312345678です。", "output": "電話は312,345,678です。"},
+      {"input": "", "output": ""},
+      {"input": "数字なし", "output": "数字なし"},
+      {"input": "7000と8000と9000", "output": "7,000と8,000と9,000"},
+      {"input": "２０２４年", "output": "２０２４年"},
+      {"input": "10000円、100000円、1000000円", "output": "10,000円、100,000円、1,000,000円"},
+      {"input": ".1000", "output": ".1000"},
+      {"input": "1000.", "output": "1000."}
+    ],
+    "unsupported_numbers": [
+      {"input": {"en": "Japan has about 7,000 islands", "ja": "日本には約7000の島々があります。"}, "output": []},
+      {"input": {"en": "Japan has about 7,000 islands", "ja": "日本には約七千の島々があります。"}, "output": []},
+      {
+        "input": {"en": "The price is 20 percent higher than last month", "ja": "先月より二割高いですね。"},
+        "output": []
+      },
+      {"input": {"en": "It is the 7th largest island in the world", "ja": "世界で7番目に大きい島です。"}, "output": []},
+      {"input": {"en": "The population is 12,000", "ja": "人口は1万2000人です。"}, "output": []},
+      {"input": {"en": "The budget is 7 million yen", "ja": "予算は700万円です。"}, "output": []},
+      {"input": {"en": "It happened on October 6, 1789", "ja": "1789年10月6日のことです。"}, "output": []},
+      {"input": {"en": "Pi is 3.14", "ja": "円周率は３．１４です。"}, "output": []},
+      {"input": {"en": "I will talk about it tomorrow", "ja": "明日話すつもりです。"}, "output": []},
+      {
+        "input": {
+          "en": "Japan has about 70,000 islands, the seventh largest in the world",
+          "ja": "日本には約7000の島々があり、世界で7番目に大きい島です。"
+        },
+        "output": ["70,000"]
+      },
+      {
+        "input": {
+          "en": "Year 1989 – On October 6, 1863, King Louis 16 was returned",
+          "ja": "17、89年10月6日、国王ルイ16世は戻されました。"
+        },
+        "output": ["1989", "1863"]
+      },
+      {"input": {"en": "It costs 350 yen", "ja": "三百五十円です。"}, "output": []},
+      {"input": {"en": "It costs 530 yen", "ja": "三百五十円です。"}, "output": ["530"]},
+      {"input": {"en": "It is 2024", "ja": "二〇二四年です。"}, "output": []},
+      {"input": {"en": "It is 2042", "ja": "二〇二四年です。"}, "output": ["2042"]},
+      {"input": {"en": "120 million people", "ja": "1億2千万人です。"}, "output": []},
+      {"input": {"en": "12 million people", "ja": "1億2千万人です。"}, "output": ["12 million"]},
+      {"input": {"en": "3 trillion yen", "ja": "三兆円です。"}, "output": []},
+      {"input": {"en": "3 billion yen", "ja": "三兆円です。"}, "output": ["3 billion"]},
+      {"input": {"en": "There are 5 apples", "ja": ""}, "output": ["5"]},
+      {"input": {"en": "", "ja": "りんごが五個です。"}, "output": []},
+      {"input": {"en": "It is 3.5 percent", "ja": "3.5%です。"}, "output": []},
+      {"input": {"en": "80 percent, 8 tenths, 800", "ja": "八割です。"}, "output": ["800"]},
+      {"input": {"en": "1000 yen", "ja": "1,000円です。"}, "output": []},
+      {"input": {"en": "It is 1,000 yen or 1.5 thousand", "ja": "1,000円です。"}, "output": ["1.5 thousand"]},
+      {"input": {"en": "1 million, 2 million", "ja": "百万です。"}, "output": ["2 million"]},
+      {"input": {"en": "ABC123 is the code", "ja": "ABC123です。"}, "output": []},
+      {"input": {"en": "v2.5 and 2.5", "ja": "2.5です。"}, "output": []},
+      {"input": {"en": "15 minutes and 15 hundred", "ja": "十五分です。"}, "output": []}
+    ]
+  }
+}

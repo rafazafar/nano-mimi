@@ -1,0 +1,78 @@
+{
+  "family": "cache",
+  "functions": {
+    "cache_key": [
+      {"input": "移植です。 天気ですね。", "output": "移植です。天気ですね。"},
+      {"input": "移植です。天気ですね。", "output": "移植です。天気ですね。"},
+      {"input": "", "output": ""},
+      {"input": "   ", "output": ""},
+      {"input": " a b\tc\nd ", "output": "abcd"},
+      {"input": "全角　スペース　", "output": "全角スペース"},
+      {"input": "　　", "output": ""},
+      {"input": "no_spaces", "output": "no_spaces"},
+      {"input": "a b", "output": "ab"},
+      {"input": "a b", "output": "ab"},
+      {"input": "line\r\nbreak", "output": "linebreak"},
+      {"input": "a\u001cbc", "output": "abc"},
+      {"input": "a﻿b", "output": "a﻿b"},
+      {"input": "a​b", "output": "a​b"},
+      {"input": "a b c", "output": "abc"},
+      {"input": "はい。", "output": "はい。"},
+      {"input": " はい。 ", "output": "はい。"}
+    ],
+    "pipeline_cache_key": [
+      {"input": {"glossary": [["てっこうです", "結構です"], ["てっこう", "結構"]], "ja": "てっこうです"}, "output": "結構です。"},
+      {
+        "input": {
+          "glossary": [["部長", "department head"], ["ミミボックス", "MimiVox"], ["よろしくお願いします", "I look forward to working with you"], ["てっこうだ", "結構だ"]],
+          "ja": "部長に よろしくお願いします"
+        },
+        "output": "departmentheadにIlookforwardtoworkingwithyou。"
+      },
+      {"input": {"glossary": [], "ja": "はい"}, "output": "はい。"},
+      {"input": {"glossary": [], "ja": "はい。"}, "output": "はい。"},
+      {"input": {"glossary": [], "ja": " ありがとう "}, "output": "ありがとう。"},
+      {"input": {"glossary": [], "ja": ""}, "output": ""},
+      {
+        "input": {
+          "glossary": [["部長", "department head"], ["ミミボックス", "MimiVox"], ["よろしくお願いします", "I look forward to working with you"], ["てっこうだ", "結構だ"]],
+          "ja": "本当ですか？"
+        },
+        "output": "本当ですか？"
+      }
+    ],
+    "seeds": [
+      {"input": "ありがとう。", "output": "Thank you."},
+      {"input": "ありがとうございました。", "output": "Thank you very much."},
+      {"input": "いいよ。", "output": "Okay."},
+      {"input": "いただきます。", "output": "Let me begin."},
+      {"input": "おはよう!", "output": "Good morning!"},
+      {"input": "おはよう。", "output": "Good morning."},
+      {"input": "おやすみ。", "output": "Good night."},
+      {"input": "おやすみなさい。", "output": "Good night."},
+      {"input": "お兄ちゃん、えらーい!", "output": "Wow, big brother!"},
+      {"input": "お兄ちゃん、がんばって!", "output": "Come on, big brother!"},
+      {"input": "お兄ちゃん、がんばって！", "output": "Come on, big brother!"},
+      {"input": "お兄ちゃん。", "output": "Big brother."},
+      {"input": "お母さん。", "output": "Mom."},
+      {"input": "お父さん、俺の方が早い!", "output": "Dad, I'm faster!"},
+      {"input": "お父さん。", "output": "Dad."},
+      {"input": "ごちそうさま。", "output": "Thanks for the meal."},
+      {"input": "ごちそうさまでした。", "output": "Thanks for the meal."},
+      {"input": "ごめんごめん。", "output": "Sorry, sorry."},
+      {"input": "ごめんなさい。", "output": "I'm sorry."},
+      {"input": "では始めさせていただきます。", "output": "Let me begin."},
+      {"input": "はい。", "output": "Yes."},
+      {"input": "はーい。", "output": "Yes!"},
+      {"input": "ほのかは。", "output": "Honoka,"},
+      {"input": "わかった。", "output": "Understood."},
+      {"input": "ん。", "output": "Mm."},
+      {"input": "カレー大好き!", "output": "I love curry!"},
+      {"input": "先に入る。", "output": "I'll go first."},
+      {"input": "競争?", "output": "Competition?"},
+      {"input": "競争。", "output": "Competition."},
+      {"input": "豚肉。", "output": "Pork."},
+      {"input": "頑張りなさい。", "output": "Do your best!"}
+    ]
+  }
+}

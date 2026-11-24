@@ -1,0 +1,90 @@
+{
+  "family": "text",
+  "functions": {
+    "deduplicate_phrases": [
+      {"input": "これは普通の文章です。", "output": "これは普通の文章です。"},
+      {"input": "テスト テスト テスト テスト テスト テスト テスト テスト テスト テスト ", "output": "テスト "},
+      {
+        "input": "アクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアをアクセプトスクリテリアを",
+        "output": "アクセプトスクリテリアを"
+      },
+      {
+        "input": "移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, ",
+        "output": "移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, 移植、 master config, "
+      },
+      {"input": "はいはいはいはいはいはい", "output": "はい"},
+      {"input": "はいはいはい", "output": "はいはいはい"},
+      {"input": "ああああああああああああああああああああああああああああああああああああああああ", "output": "あ"},
+      {"input": "", "output": ""},
+      {"input": "短い。", "output": "短い。"},
+      {"input": "ええと、 ええと、 ええと、 ええと、 ええと、 ええと、 終わりです。", "output": "ええと、 終わりです。"},
+      {"input": "A B C D E F G H I J", "output": "A B C D E F G H I J"},
+      {"input": "ありがとう ありがとう ありがとう ありがとう ありがとう ありがとう ありがとう ありがとう ありがとう", "output": "ありがとう ありがとう"},
+      {"input": "今日、明日、今日、明日、今日、明日、今日、明日、今日、明日", "output": "今日、明日、今日、明日、今日、明日、今日、明日、今日、明日"},
+      {"input": "これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。これ。", "output": "これ。"},
+      {"input": "そうですね、そうですね。次の議題です。", "output": "そうですね、そうですね。次の議題です。"},
+      {"input": "x y x y x y x y x y x y x y x y z", "output": "x y z"},
+      {"input": "同じ 同じ 同じ 同じ 違う 同じ 同じ 同じ 同じ 同じ", "output": "同じ 違う 同じ 同じ"}
+    ],
+    "is_mostly_english": [
+      {"input": "This is English text", "output": true},
+      {"input": "これは日本語です", "output": false},
+      {"input": "", "output": false},
+      {"input": "   ", "output": false},
+      {"input": "123", "output": false},
+      {"input": "OK", "output": true},
+      {"input": "Let's circle back on that.", "output": true},
+      {"input": "はい、OK", "output": false},
+      {"input": "ミーティング", "output": false},
+      {"input": "Thanks, ありがとう", "output": false},
+      {"input": "Let's meet at 3pm と言いました", "output": false},
+      {"input": "ｱｲｳ test", "output": false},
+      {"input": "Hello! こんにちは world and more english text here", "output": false},
+      {"input": "。。。", "output": false},
+      {
+        "input": "日本語 English English English English English English English English English",
+        "output": false
+      }
+    ],
+    "is_non_content_asr": [
+      {"input": "", "output": true},
+      {"input": "   ", "output": true},
+      {"input": "。", "output": true},
+      {"input": "、", "output": true},
+      {"input": "...！！", "output": true},
+      {"input": "「」", "output": true},
+      {"input": "はい。", "output": false},
+      {"input": "Eのフロント", "output": false},
+      {"input": "　。　", "output": true},
+      {"input": "…‥", "output": true},
+      {"input": "- — –", "output": true},
+      {"input": "~～", "output": true},
+      {"input": "\"'", "output": true},
+      {"input": "(  )", "output": true},
+      {"input": "【】", "output": true},
+      {"input": "a", "output": false},
+      {"input": "1", "output": false},
+      {"input": "。。。。。", "output": true},
+      {"input": "ー", "output": false},
+      {"input": "、はい", "output": false}
+    ],
+    "normalize_punctuation": [
+      {"input": "こんにちは", "output": "こんにちは。"},
+      {"input": "こんにちは。", "output": "こんにちは。"},
+      {"input": "  こんにちは  ", "output": "こんにちは。"},
+      {"input": "本当ですか？", "output": "本当ですか？"},
+      {"input": "Really?", "output": "Really?"},
+      {"input": "Done.", "output": "Done."},
+      {"input": "Wow!", "output": "Wow!"},
+      {"input": "すごい！", "output": "すごい！"},
+      {"input": "", "output": ""},
+      {"input": "   ", "output": ""},
+      {"input": "　はい　", "output": "はい。"},
+      {"input": "それは、", "output": "それは、。"},
+      {"input": "終わりです.", "output": "終わりです."},
+      {"input": "a", "output": "a。"},
+      {"input": "「はい」", "output": "「はい」。"},
+      {"input": "はい\n", "output": "はい。"}
+    ]
+  }
+}

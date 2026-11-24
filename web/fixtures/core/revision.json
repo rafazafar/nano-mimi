@@ -1,0 +1,78 @@
+{
+  "family": "revision",
+  "functions": {
+    "ends_mid_sentence": [
+      {"input": "部長には報告しましたが、", "output": true},
+      {"input": "部長には報告しましたが", "output": true},
+      {"input": "報告しましたが。", "output": true},
+      {"input": "待って。", "output": false},
+      {"input": "忙しいから。", "output": false},
+      {"input": "はい", "output": false},
+      {"input": "えーと", "output": false},
+      {"input": "本当ですか？", "output": false},
+      {"input": "それで、部長には報告しましたか。", "output": false},
+      {"input": "", "output": false},
+      {"input": "   ", "output": false},
+      {"input": "「報告しましたが、」", "output": true},
+      {"input": "報告しましたが」", "output": true},
+      {"input": "ありがとう、", "output": true},
+      {"input": "ありがとう，", "output": true},
+      {"input": "ありがとう,", "output": true},
+      {"input": "そうなんですけれども。", "output": true},
+      {"input": "そうなんですけれど。", "output": true},
+      {"input": "そうなんですけど。", "output": true},
+      {"input": "そうなのでので。", "output": true},
+      {"input": "あああああ", "output": true},
+      {"input": "ああああ", "output": false},
+      {"input": "終わりました！", "output": false},
+      {"input": "これは何?", "output": false},
+      {"input": "ええ。", "output": false},
+      {"input": "行きますので。", "output": true},
+      {"input": "行きますが）", "output": true}
+    ],
+    "is_split_continuation": [
+      {"input": {"gap_s": 0.8, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": true},
+      {"input": {"gap_s": 0.8, "next": "まだ返事がありません。", "prev": "部長には報告しましたが"}, "output": true},
+      {"input": {"gap_s": 0.8, "next": "まだ返事がありません。", "prev": "報告しましたが。"}, "output": true},
+      {"input": {"gap_s": 1.6, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": false},
+      {"input": {"gap_s": 1.5, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": true},
+      {"input": {"gap_s": 1.5001, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "来週までに返事をしないといけないですね。", "prev": "先月より二割高いですね。"}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "まだです。", "prev": "それで、部長には報告しましたか。"}, "output": false},
+      {"input": {"gap_s": 0.3, "next": "はい", "prev": "本当ですか？"}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "これを見てください。", "prev": "待って。"}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "また今度。", "prev": "忙しいから。"}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "わかりました。", "prev": "はい"}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "まだです。", "prev": ""}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "", "prev": "部長には報告しましたが、"}, "output": false},
+      {"input": {"gap_s": 0.5, "next": "まだです。", "prev": "  "}, "output": false},
+      {
+        "input": {
+          "gap_s": 0.5,
+          "next": "いいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいい。",
+          "prev": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ、"
+        },
+        "output": false
+      },
+      {
+        "input": {
+          "gap_s": 0.5,
+          "next": "いいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいい。",
+          "prev": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ、"
+        },
+        "output": false
+      },
+      {
+        "input": {
+          "gap_s": 0.5,
+          "next": "いいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいい。",
+          "prev": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ、"
+        },
+        "output": false
+      },
+      {"input": {"gap_s": 0.0, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": true},
+      {"input": {"gap_s": -0.2, "next": "まだ返事がありません。", "prev": "部長には報告しましたが、"}, "output": true},
+      {"input": {"gap_s": 0.4, "next": " まだ返事がありません。 ", "prev": " 部長には報告しましたが、 "}, "output": true}
+    ]
+  }
+}

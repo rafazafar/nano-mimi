@@ -1,0 +1,194 @@
+{
+  "family": "prompt",
+  "functions": {
+    "chat_messages": [
+      {
+        "input": {"context": [["田中さんから見積もりが届きました。", "A quote arrived from Tanaka"]], "ja": "来週までに返事をしないといけないですね。"},
+        "output": {
+          "max_tokens": 32,
+          "messages": [
+            {"content": "Translate this Japanese phrase to natural English: 田中さんから見積もりが届きました。", "role": "user"},
+            {"content": "A quote arrived from Tanaka", "role": "assistant"},
+            {
+              "content": "Translate this Japanese phrase to natural English: 来週までに返事をしないといけないですね。",
+              "role": "user"
+            }
+          ],
+          "prompt": "<|user|>Translate this Japanese phrase to natural English: 田中さんから見積もりが届きました。</s><|assistant|>A quote arrived from Tanaka</s><|user|>Translate this Japanese phrase to natural English: 来週までに返事をしないといけないですね。</s><|assistant|>"
+        }
+      },
+      {
+        "input": {"context": [], "ja": "ありがとうございます。"},
+        "output": {
+          "max_tokens": 32,
+          "messages": [{"content": "Translate this Japanese phrase to natural English: ありがとうございます。", "role": "user"}],
+          "prompt": "<|user|>Translate this Japanese phrase to natural English: ありがとうございます。</s><|assistant|>"
+        }
+      },
+      {
+        "input": {
+          "context": [["田中さんから見積もりが届きました。", "A quote arrived from Tanaka"], ["先月より二割高いですね。", "It is 20 percent higher than last month"], ["来週までに返事をしないといけないですね。", "We have to reply by next week"]],
+          "ja": "部長には報告しましたが、まだ返事がありません。"
+        },
+        "output": {
+          "max_tokens": 32,
+          "messages": [
+            {"content": "Translate this Japanese phrase to natural English: 田中さんから見積もりが届きました。", "role": "user"},
+            {"content": "A quote arrived from Tanaka", "role": "assistant"},
+            {"content": "Translate this Japanese phrase to natural English: 先月より二割高いですね。", "role": "user"},
+            {"content": "It is 20 percent higher than last month", "role": "assistant"},
+            {
+              "content": "Translate this Japanese phrase to natural English: 来週までに返事をしないといけないですね。",
+              "role": "user"
+            },
+            {"content": "We have to reply by next week", "role": "assistant"},
+            {
+              "content": "Translate this Japanese phrase to natural English: 部長には報告しましたが、まだ返事がありません。",
+              "role": "user"
+            }
+          ],
+          "prompt": "<|user|>Translate this Japanese phrase to natural English: 田中さんから見積もりが届きました。</s><|assistant|>A quote arrived from Tanaka</s><|user|>Translate this Japanese phrase to natural English: 先月より二割高いですね。</s><|assistant|>It is 20 percent higher than last month</s><|user|>Translate this Japanese phrase to natural English: 来週までに返事をしないといけないですね。</s><|assistant|>We have to reply by next week</s><|user|>Translate this Japanese phrase to natural English: 部長には報告しましたが、まだ返事がありません。</s><|assistant|>"
+        }
+      },
+      {
+        "input": {
+          "context": [["田中さんから見積もりが届きました。", "A quote arrived from Tanaka"], ["先月より二割高いですね。", "It is 20 percent higher than last month"]],
+          "ja": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        },
+        "output": {
+          "max_tokens": 86,
+          "messages": [
+            {"content": "Translate this Japanese phrase to natural English: 田中さんから見積もりが届きました。", "role": "user"},
+            {"content": "A quote arrived from Tanaka", "role": "assistant"},
+            {"content": "Translate this Japanese phrase to natural English: 先月より二割高いですね。", "role": "user"},
+            {"content": "It is 20 percent higher than last month", "role": "assistant"},
+            {
+              "content": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+              "role": "user"
+            }
+          ],
+          "prompt": "<|user|>Translate this Japanese phrase to natural English: 田中さんから見積もりが届きました。</s><|assistant|>A quote arrived from Tanaka</s><|user|>Translate this Japanese phrase to natural English: 先月より二割高いですね。</s><|assistant|>It is 20 percent higher than last month</s><|user|>Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ</s><|assistant|>"
+        }
+      },
+      {
+        "input": {"context": [["ああああああああああああああああああああああああああああああ", "x"], ["ああああ", "y"]], "ja": "はい"},
+        "output": {
+          "max_tokens": 16,
+          "messages": [
+            {
+              "content": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああ",
+              "role": "user"
+            },
+            {"content": "x", "role": "assistant"},
+            {"content": "Japanese: ああああ\nEnglish:", "role": "user"},
+            {"content": "y", "role": "assistant"},
+            {"content": "Japanese: はい\nEnglish:", "role": "user"}
+          ],
+          "prompt": "<|user|>Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああ</s><|assistant|>x</s><|user|>Japanese: ああああ\nEnglish:</s><|assistant|>y</s><|user|>Japanese: はい\nEnglish:</s><|assistant|>"
+        }
+      }
+    ],
+    "prompt_and_tokens": [
+      {"input": "こんにちは", "output": {"max_tokens": 16, "prompt": "Japanese: こんにちは\nEnglish:"}},
+      {"input": "  こんにちは  ", "output": {"max_tokens": 16, "prompt": "Japanese:   こんにちは  \nEnglish:"}},
+      {"input": "あああああ", "output": {"max_tokens": 16, "prompt": "Japanese: あああああ\nEnglish:"}},
+      {
+        "input": "ああああああ",
+        "output": {"max_tokens": 32, "prompt": "Translate this Japanese phrase to natural English: ああああああ"}
+      },
+      {
+        "input": "あああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 32,
+          "prompt": "Translate this Japanese phrase to natural English: あああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "ああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 64,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 64,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "あああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 80,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nあああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "これは中くらいの長さの日本語の文章でテスト用ですよ。",
+        "output": {
+          "max_tokens": 64,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nこれは中くらいの長さの日本語の文章でテスト用ですよ。"
+        }
+      },
+      {
+        "input": "これはとても長い日本語の文章で、たくさんの文字が含まれています。これはとても長い日本語の文章で、たくさんの文字が含まれています。",
+        "output": {
+          "max_tokens": 80,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nこれはとても長い日本語の文章で、たくさんの文字が含まれています。これはとても長い日本語の文章で、たくさんの文字が含まれています。"
+        }
+      },
+      {
+        "input": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 80,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "あああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 81,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nあああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 136,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "あああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 141,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nあああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        }
+      },
+      {
+        "input": "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ",
+        "output": {
+          "max_tokens": 216,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\nああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+        }
+      },
+      {"input": "", "output": {"max_tokens": 16, "prompt": "Japanese: \nEnglish:"}},
+      {"input": "   ", "output": {"max_tokens": 16, "prompt": "Japanese:    \nEnglish:"}},
+      {"input": "　はい　", "output": {"max_tokens": 16, "prompt": "Japanese: 　はい　\nEnglish:"}},
+      {
+        "input": "{ja} {braces}",
+        "output": {"max_tokens": 32, "prompt": "Translate this Japanese phrase to natural English: {ja} {braces}"}
+      },
+      {"input": "a\nb", "output": {"max_tokens": 16, "prompt": "Japanese: a\nb\nEnglish:"}},
+      {"input": "  あああああ  ", "output": {"max_tokens": 16, "prompt": "Japanese:   あああああ  \nEnglish:"}},
+      {
+        "input": "  ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ  ",
+        "output": {
+          "max_tokens": 80,
+          "prompt": "Translate the following Japanese speech into natural conversational English. Preserve the meaning, tone, and speaker intent; avoid stiff literal wording.\n\n  ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ  "
+        }
+      }
+    ]
+  }
+}

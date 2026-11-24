@@ -1,6 +1,6 @@
 # Developer commands. `make` lists them.
 .DEFAULT_GOAL := help
-.PHONY: help setup server web app app-dev test lint fmt check swift-check fixture eval clean
+.PHONY: help setup server web web-fixtures web-test web-e2e app app-dev test lint fmt check swift-check fixture eval clean
 
 UV := uv run
 
@@ -40,6 +40,22 @@ check: lint test ## Lint + tests (run before a PR)
 
 fixture: ## Generate the sample meeting recording for Replay
 	$(UV) python scripts/make_meeting_fixture.py
+
+web/node_modules: web/package-lock.json
+	cd web && npm ci
+	touch web/node_modules
+
+web: web/node_modules ## Run the browser app dev server
+	cd web && npm run dev
+
+web-fixtures: ## Regenerate web/fixtures from the Python functions (needs the CAT model cache)
+	$(UV) python scripts/export_web_fixtures.py
+
+web-test: web/node_modules ## Typecheck and replay fixtures in vitest
+	cd web && npm run typecheck && npm test
+
+web-e2e: web/node_modules ## Open the shell in Chrome and check the WebGPU adapter
+	cd web && npm run test:e2e
 
 eval: ## Run the eval harness (~20 min; see docs/eval.md)
 	$(UV) python scripts/eval/fetch_fleurs.py

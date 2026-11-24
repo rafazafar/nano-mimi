@@ -1,0 +1,61 @@
+{
+  "family": "glossary",
+  "functions": {
+    "apply_glossary": [
+      {"input": {"glossary": [["てっこうです", "結構です"], ["てっこう", "結構"]], "text": "てっこうです"}, "output": "結構です"},
+      {
+        "input": {"glossary": [["てっこうです", "結構です"], ["てっこう", "結構"]], "text": "てっこうですね、てっこう"},
+        "output": "結構ですね、結構"
+      },
+      {
+        "input": {
+          "glossary": [["部長", "department head"], ["ミミボックス", "MimiVox"], ["よろしくお願いします", "I look forward to working with you"], ["てっこうだ", "結構だ"]],
+          "text": "部長によろしくお願いします"
+        },
+        "output": "department headにI look forward to working with you"
+      },
+      {"input": {"glossary": [["お願いします", "please"]], "text": "お願いします"}, "output": "please"},
+      {
+        "input": {"glossary": [["お願いします", "please"], ["よろしくお願いします", "regards"]], "text": "よろしくお願いします"},
+        "output": "regards"
+      },
+      {
+        "input": {"glossary": [["よろしくお願いします", "regards"], ["お願いします", "please"]], "text": "よろしくお願いします"},
+        "output": "regards"
+      },
+      {"input": {"glossary": [["A", "x"], ["B", "y"]], "text": "AとBとAB"}, "output": "xとyとxy"},
+      {"input": {"glossary": [["B", "y"], ["A", "x"]], "text": "AとBとAB"}, "output": "xとyとxy"},
+      {"input": {"glossary": [["A", "B"], ["B", "A"]], "text": "AB"}, "output": "AA"},
+      {"input": {"glossary": [["B", "A"], ["A", "B"]], "text": "AB"}, "output": "BB"},
+      {
+        "input": {
+          "glossary": [["部長", "department head"], ["ミミボックス", "MimiVox"], ["よろしくお願いします", "I look forward to working with you"], ["てっこうだ", "結構だ"]],
+          "text": "ミミボックスのミミボックス"
+        },
+        "output": "MimiVoxのMimiVox"
+      },
+      {
+        "input": {
+          "glossary": [["部長", "department head"], ["ミミボックス", "MimiVox"], ["よろしくお願いします", "I look forward to working with you"], ["てっこうだ", "結構だ"]],
+          "text": "何もありません"
+        },
+        "output": "何もありません"
+      },
+      {
+        "input": {
+          "glossary": [["部長", "department head"], ["ミミボックス", "MimiVox"], ["よろしくお願いします", "I look forward to working with you"], ["てっこうだ", "結構だ"]],
+          "text": ""
+        },
+        "output": ""
+      },
+      {"input": {"glossary": [], "text": "部長"}, "output": "部長"},
+      {"input": {"glossary": [["部長", ""]], "text": "部長です"}, "output": "です"},
+      {"input": {"glossary": [[".", "!"], ["a.b", "ab"]], "text": "a.b"}, "output": "ab"},
+      {"input": {"glossary": [["ab", "x"], ["AB", "y"]], "text": "ABC"}, "output": "yC"},
+      {
+        "input": {"glossary": [["見積", "quote"], ["見積もり", "estimate"]], "text": "見積もり、見積"},
+        "output": "estimate、quote"
+      }
+    ]
+  }
+}
