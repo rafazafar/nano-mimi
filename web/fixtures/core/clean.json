@@ -115,6 +115,22 @@
         "input": "Ok. Here is the instruction: do it",
         "output": {"japanese_stripped": false, "prompt_leak": true, "text": "Ok"}
       },
+      {
+        "input": "The police arrived at the scene. Avoid using overly formal and literal wording.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
+      {
+        "input": "The police arrived at the scene. Avoid using overly formal and literal language.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
+      {
+        "input": "The police arrived at the scene. Avoid overly literal wording.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
+      {
+        "input": "The police arrived at the scene. Avoid overly formal wording.",
+        "output": {"japanese_stripped": false, "prompt_leak": true, "text": "The police arrived at the scene"}
+      },
       {"input": "ｱｲｳ kana", "output": {"japanese_stripped": true, "prompt_leak": false, "text": "kana"}},
       {
         "input": "mixed English and 日本語 together",
@@ -289,7 +305,7 @@
     "prompt_leak_markers": [
       {
         "input": null,
-        "output": ["Translate the following", "Please translate", "The meaning, tone", "Preserve the meaning", "avoid stiff literal", "avoid overly rigid", "Avoid using overly rigid", "speaker intent", "can be translated", "has been translated", "Please keep the meaning", "Please preserve", "natural conversational English", "Your message", "message has been", "Translate to English", "following Japanese", "in Japanese", "In English,", "Let's keep playing", "speak English naturally", "I'll help you speak", "I'll help you", "I can help you", "that was incorrect", "This Japanese phrase", "correct translation:", "ccenture", "Here is the instruction", "English:", "this phrase in English", "Japanese:", "Please use the"]
+        "output": ["Translate the following", "Please translate", "The meaning, tone", "Preserve the meaning", "avoid stiff literal", "avoid overly rigid", "Avoid using overly rigid", "Avoid using overly formal", "Avoid overly formal", "Avoid overly literal", "speaker intent", "can be translated", "has been translated", "Please keep the meaning", "Please preserve", "natural conversational English", "Your message", "message has been", "Translate to English", "following Japanese", "in Japanese", "In English,", "Let's keep playing", "speak English naturally", "I'll help you speak", "I'll help you", "I can help you", "that was incorrect", "This Japanese phrase", "correct translation:", "ccenture", "Here is the instruction", "English:", "this phrase in English", "Japanese:", "Please use the"]
       }
     ],
     "too_short": [

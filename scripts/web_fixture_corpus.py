@@ -328,6 +328,10 @@ CLEAN_CAT = [
     "Right.\nEnglish:",
     "Meeting at ccenture today",
     "Ok. Here is the instruction: do it",
+    "The police arrived at the scene. Avoid using overly formal and literal wording.",
+    "The police arrived at the scene. Avoid using overly formal and literal language.",
+    "The police arrived at the scene. Avoid overly literal wording.",
+    "The police arrived at the scene. Avoid overly formal wording.",
     "ｱｲｳ kana",
     "mixed English and 日本語 together",
     "Go. in Japanese it means go",
@@ -499,6 +503,18 @@ CHAT_MESSAGES = [
     {"ja": "はい", "context": [("あ" * 30, "x"), ("あ" * 4, "y")]},
     {"ja": "😀" * 70, "context": CONTEXT_PAIRS[:1]},
     {"ja": "{ja}", "context": [("{ja}", "{x}")]},
+]
+
+# Extra lines for the rendered-prompt token ids: kanji and symbols outside CAT's vocab
+# reach the model only through byte-fallback pieces (<0xXX>), which the browser
+# tokenizer has to reproduce.
+TOKEN_ID_EXTRA = [
+    "𠮷野家で鰻重を食べました。",
+    "彁という幽霊文字があります。",
+    "龘、𩸽、𪚲は難しい漢字です。",
+    "改行\nを含む\n\n入力",
+    "絵文字😀と記号™を混ぜた文です。",
+    "ｶﾀｶﾅとＡＢＣと①②③",
 ]
 
 # Sequences of TranslationContext.add(ja, en); CONTEXT_TURNS is 3.
