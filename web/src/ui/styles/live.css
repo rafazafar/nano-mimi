@@ -334,6 +334,7 @@
 }
 
 .dock {
+  container: dock / inline-size;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -409,6 +410,14 @@
   align-items: center;
   gap: var(--s-3);
   min-width: 0;
+}
+
+/* With wide source labels the middle column would leave the hint a few pixels wide, one character per line in Japanese. */
+@container dock (max-width: 46rem) {
+  .dock-detail {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
 
 .hint {
