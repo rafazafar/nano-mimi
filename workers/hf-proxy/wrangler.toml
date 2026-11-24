@@ -1,0 +1,7 @@
+name = "mimivox-hf-proxy"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Comma-separated repo ids, or "*" for any public repo. Empty uses the MimiVox models.
+ALLOWED_REPOS = ""
